@@ -35,6 +35,15 @@ public class VirtualControllerLayout extends RelativeLayout {
     private View btnLb, btnLt, btnRb, btnRt;
     private View btnStart, btnSelect, btnL3, btnR3;
 
+    // Real-Time FPS HUD
+    private View hudFpsContainer;
+    private android.widget.TextView tvHudFps;
+    private android.widget.TextView tvHudFrametime;
+    private android.view.Choreographer.FrameCallback mFpsCallback;
+    private long mLastFrameTimeNanos = 0;
+    private int mFrameCounter = 0;
+    private long mLastFpsUpdateNanos = 0;
+
     public VirtualControllerLayout(Context context) {
         super(context);
         init();
@@ -57,14 +66,21 @@ public class VirtualControllerLayout extends RelativeLayout {
         // Inflate the XML layout directly
         LayoutInflater.from(getContext()).inflate(R.layout.layout_virtual_controller, this, true);
 
-        // Apply saved opacity
+        // Apply saved opacity to controls only (so HUD remains crisp and legible)
         SharedPreferences prefs = getContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         int opacity = prefs.getInt("controller_opacity", 70);
-        setAlpha(Math.max(0.15f, Math.min(1.0f, opacity / 100f)));
+        float alpha = Math.max(0.15f, Math.min(1.0f, opacity / 100f));
+        View controlsContainer = findViewById(R.id.layout_controls_container);
+        if (controlsContainer != null) {
+            controlsContainer.setAlpha(alpha);
+        } else {
+            setAlpha(alpha);
+        }
 
         registerVirtualJoystick();
         bindViews();
         setupListeners();
+        setupFpsCounter();
     }
 
     public void registerVirtualJoystick() {
@@ -109,6 +125,80 @@ public class VirtualControllerLayout extends RelativeLayout {
         btnStart = findViewById(R.id.btn_start);
         btnL3 = findViewById(R.id.btn_l3);
         btnR3 = findViewById(R.id.btn_r3);
+
+        hudFpsContainer = findViewById(R.id.hud_fps_container);
+        tvHudFps = findViewById(R.id.tv_hud_fps);
+        tvHudFrametime = findViewById(R.id.tv_hud_frametime);
+    }
+
+    private void setupFpsCounter() {
+        boolean showFps = GameConfigManager.isShowFpsEnabled(getContext());
+        if (hudFpsContainer == null) return;
+
+        if (!showFps) {
+            hudFpsContainer.setVisibility(View.GONE);
+            return;
+        }
+
+        // Keep HUD visible at 100% opacity regardless of controller opacity
+        hudFpsContainer.setVisibility(View.VISIBLE);
+        hudFpsContainer.setAlpha(1.0f);
+
+        mFpsCallback = new android.view.Choreographer.FrameCallback() {
+            @Override
+            public void doFrame(long frameTimeNanos) {
+                if (mLastFrameTimeNanos > 0) {
+                    mFrameCounter++;
+                    long deltaNanos = frameTimeNanos - mLastFpsUpdateNanos;
+                    if (deltaNanos >= 500_000_000L) { // Update twice a second (every 500ms) for smooth reading
+                        double fps = (mFrameCounter * 1_000_000_000.0) / deltaNanos;
+                        double frameTimeMs = 1000.0 / Math.max(1.0, fps);
+
+                        if (tvHudFps != null) {
+                            tvHudFps.setText(String.format(java.util.Locale.US, "%.1f FPS", fps));
+                            if (fps >= 55.0) {
+                                tvHudFps.setTextColor(0xFF3FB950); // Vibrant Green
+                            } else if (fps >= 30.0) {
+                                tvHudFps.setTextColor(0xFFE3B341); // Yellow / Gold
+                            } else {
+                                tvHudFps.setTextColor(0xFFF85149); // Red
+                            }
+                        }
+                        if (tvHudFrametime != null) {
+                            tvHudFrametime.setText(String.format(java.util.Locale.US, "%.1f ms", frameTimeMs));
+                        }
+
+                        mFrameCounter = 0;
+                        mLastFpsUpdateNanos = frameTimeNanos;
+                    }
+                } else {
+                    mLastFpsUpdateNanos = frameTimeNanos;
+                }
+                mLastFrameTimeNanos = frameTimeNanos;
+
+                if (isAttachedToWindow()) {
+                    android.view.Choreographer.getInstance().postFrameCallback(this);
+                }
+            }
+        };
+
+        android.view.Choreographer.getInstance().postFrameCallback(mFpsCallback);
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (mFpsCallback != null && GameConfigManager.isShowFpsEnabled(getContext())) {
+            android.view.Choreographer.getInstance().postFrameCallback(mFpsCallback);
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        if (mFpsCallback != null) {
+            android.view.Choreographer.getInstance().removeFrameCallback(mFpsCallback);
+        }
     }
 
     private void setupListeners() {

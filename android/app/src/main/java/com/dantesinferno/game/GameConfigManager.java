@@ -38,6 +38,7 @@ public class GameConfigManager {
     // Virtual Controller preferences
     public static final String PREF_SHOW_VIRTUAL_CONTROLLER = "show_virtual_controller";
     public static final String PREF_CONTROLLER_OPACITY = "controller_opacity";
+    public static final String PREF_SHOW_FPS = "show_fps_hud";
 
     public static File getStorageDir(Context context) {
         File ext = context.getExternalFilesDir(null);
@@ -352,6 +353,16 @@ public class GameConfigManager {
     public static void setControllerOpacity(Context context, int opacity) {
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                .edit().putInt(PREF_CONTROLLER_OPACITY, opacity).apply();
+    }
+
+    public static boolean isShowFpsEnabled(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getBoolean(PREF_SHOW_FPS, true);
+    }
+
+    public static void setShowFpsEnabled(Context context, boolean show) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit().putBoolean(PREF_SHOW_FPS, show).apply();
     }
 
     /**

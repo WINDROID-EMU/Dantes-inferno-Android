@@ -275,7 +275,25 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
+                        android:layout_marginBottom="8dp"
                         android:text="Desativa gravação de logs e validação de GPU, eliminando travamentos."
+                        android:textColor="#8B949E"
+                        android:textSize="11sp" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switch_show_fps"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Contador de FPS em Tempo Real"
+                        android:textColor="#F0F6FC"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Exibe o HUD no canto superior com os FPS reais e tempo de quadro (ms)."
                         android:textColor="#8B949E"
                         android:textSize="11sp" />
                 </LinearLayout>

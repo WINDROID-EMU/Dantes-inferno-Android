@@ -204,8 +204,9 @@ public class MainActivity extends SDLActivity {
     private void setupVirtualController() {
         SharedPreferences prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         boolean showVirtualController = prefs.getBoolean("show_virtual_controller", true);
+        boolean showFps = prefs.getBoolean("show_fps_hud", true);
 
-        if (showVirtualController && mLayout != null) {
+        if ((showVirtualController || showFps) && mLayout != null) {
             runOnUiThread(() -> {
                 if (mVirtualController == null) {
                     mVirtualController = new VirtualControllerLayout(this);
@@ -215,6 +216,12 @@ public class MainActivity extends SDLActivity {
                     );
                     mLayout.addView(mVirtualController, lp);
                     Log.i(TAG, "Virtual controller layout (XML) attached to game layout successfully");
+                }
+
+                // If user disabled touch buttons but wants the FPS counter HUD, hide the touch buttons container
+                View controlsContainer = mVirtualController.findViewById(R.id.layout_controls_container);
+                if (controlsContainer != null) {
+                    controlsContainer.setVisibility(showVirtualController ? View.VISIBLE : View.GONE);
                 }
             });
         }

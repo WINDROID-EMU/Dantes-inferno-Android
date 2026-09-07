@@ -6,19 +6,67 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Top Left: LT & LB Bumpers -->
+    <!-- Real-Time FPS & Frame Time HUD -->
     <LinearLayout
-        android:id="@+id/layout_left_bumpers"
+        android:id="@+id/hud_fps_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="16dp"
-        android:orientation="vertical">
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="10dp"
+        android:background="#CC0D1117"
+        android:elevation="10dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingTop="5dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="5dp"
+        android:visibility="gone">
 
         <TextView
-            android:id="@+id/btn_lt"
+            android:id="@+id/tv_hud_fps"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.05"
+            android:text="60.0 FPS"
+            android:textColor="#3FB950"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_hud_frametime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:fontFamily="monospace"
+            android:text="16.6 ms"
+            android:textColor="#58A6FF"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Virtual Controller Controls Container (Receives opacity alpha without affecting HUD) -->
+    <RelativeLayout
+        android:id="@+id/layout_controls_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <!-- Top Left: LT & LB Bumpers -->
+        <LinearLayout
+            android:id="@+id/layout_left_bumpers"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/btn_lt"
             android:layout_width="100dp"
             android:layout_height="44dp"
             android:background="@drawable/bg_btn_bumper"
@@ -259,6 +307,8 @@
             android:textColor="#FFFFFF"
             android:textSize="22sp"
             android:textStyle="bold" />
+    </RelativeLayout>
+
     </RelativeLayout>
 
 </RelativeLayout>

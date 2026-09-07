@@ -23,6 +23,7 @@ public class SettingsActivity extends AppCompatActivity {
     private SwitchCompat switchUseTurnip;
     private SwitchCompat switchTurboMode;
     private SwitchCompat switchDisableDebug;
+    private SwitchCompat switchShowFps;
     private TextView tvDriverStatus;
     private Button btnInstallDriverZip;
     private Button btnResetSystemDriver;
@@ -68,6 +69,7 @@ public class SettingsActivity extends AppCompatActivity {
         switchUseTurnip = findViewById(R.id.switch_use_turnip);
         switchTurboMode = findViewById(R.id.switch_turbo_mode);
         switchDisableDebug = findViewById(R.id.switch_disable_debug);
+        switchShowFps = findViewById(R.id.switch_show_fps);
         tvDriverStatus = findViewById(R.id.tv_settings_driver_name);
         btnInstallDriverZip = findViewById(R.id.btn_install_driver_zip);
         btnResetSystemDriver = findViewById(R.id.btn_reset_system_driver);
@@ -116,6 +118,13 @@ public class SettingsActivity extends AppCompatActivity {
             switchDisableDebug.setChecked(disableDebug);
             switchDisableDebug.setOnCheckedChangeListener((bv, isChecked) -> {
                 GameConfigManager.setDisableDebug(this, isChecked);
+            });
+        }
+
+        if (switchShowFps != null) {
+            switchShowFps.setChecked(GameConfigManager.isShowFpsEnabled(this));
+            switchShowFps.setOnCheckedChangeListener((bv, isChecked) -> {
+                GameConfigManager.setShowFpsEnabled(this, isChecked);
             });
         }
 

@@ -220,6 +220,7 @@ implemented in pure Python.
       - Native ARM64 NEON vector conversions (`vmaxq_f32`, `vcvtq_u32_f32`, `vcvtq_s32_f32`, `vcvtq_f32_u32`) replacing slow simulated multi-step conversions in `thirdparty/rexglue-sdk/include/rex/ppc/intrinsics.h`.
       - Clang compiler optimization flags `-O3 -fomit-frame-pointer -fno-stack-protector -ffp-contract=fast -fvectorize` removing overhead across 20,000+ recompiled guest functions.
       - Fixed Turnip crash recovery false-positive in `MainActivity.java` so high-performance Mesa driver remains active.
+- [x] In-game real-time FPS & Frametime (ms) HUD overlay with toggle in Settings, color-coded performance indicators (green/yellow/red), and isolated alpha/visibility.
 - [x] Prebuilt release APK packaged at `apk/dantes_inferno_arm64.apk`
 - [ ] DLC auto-install hook in OnPostSetup
 
