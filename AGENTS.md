@@ -208,6 +208,12 @@ implemented in pure Python.
       extraction, EAGM mesh extraction
 - [x] Graphics quality cvars configured in OnPreSetup
 - [x] MnK keybind defaults configured in OnPreSetup
+- [x] Android ARM64 port implemented (Vulkan + SDL3 + AdrenoTools Turnip)
+- [x] In-engine ISO installer (dantes_iso_installer) extracts XDVDFS directly on Android
+- [x] 114 recompilation C++ units tracked in `generated/default/` with setjmp patches applied
+- [x] Android stability fixes (landscape lock, Scudo teardown fix, user_data permissions)
+- [x] Prebuilt release APK packaged at `apk/dantes_inferno_arm64.apk`
 - [ ] DLC auto-install hook in OnPostSetup
 - [ ] Ultrawide projection hook (requires RE of generated code)
 - [ ] Button glyph replacement (requires RE of generated code)
+

@@ -21,56 +21,70 @@ Este documento descreve como compilar, empacotar e executar o port de recompila�
 
 ---
 
-## 2. Estrutura dos Arquivos do Jogo (~7.8GB)
+## 2. Instalação Rápida (Sem Compilação)
 
-Como um APK do Android não deve conter gigabytes de dados internamente, o jogo lê os assets a partir do armazenamento do aparelho.
+Se você deseja apenas instalar e jogar:
 
-1. Extraia a sua ISO do Dante's Inferno (Xbox 360) usando ferramentas como `extract-xiso` ou o `tools/asset_tool.py`.
-2. Conecte o celular ao computador via USB.
-3. Copie a pasta `game` extraída para um dos caminhos reconhecidos automaticamente pelo jogo:
-   * `/sdcard/DantesInferno/game/`
-   * Ou `/storage/emulated/0/DantesInferno/game/`
-4. Certifique-se de que o arquivo executável principal está localizado exatamente em:
-   ```text
-   /sdcard/DantesInferno/game/default.xex
-   /sdcard/DantesInferno/game/bigfile0.viv
-   /sdcard/DantesInferno/game/bigfile1.viv
-   ```
-
-*Nota: Caso você coloque em outra pasta, o aplicativo abrirá um seletor de diretórios no primeiro início para que você indique a pasta.*
+1. **Instale o APK:**
+   - O APK pré-compilado já está disponível no repositório em `apk/dantes_inferno_arm64.apk`.
+   - Instale no seu celular via ADB ou gerenciador de arquivos:
+     ```bash
+     adb install -r apk/dantes_inferno_arm64.apk
+     ```
+2. **Copie o arquivo ISO:**
+   - Não é necessário extrair a ISO no computador! O aplicativo possui um instalador interno de partição XDVDFS.
+   - Copie o seu arquivo `.iso` do Dante's Inferno (Xbox 360, ~7.4 GB) para o armazenamento interno do celular (por exemplo, na raiz `/sdcard/`):
+     ```bash
+     adb push "Dante's Inferno (USA, Europe) (En,Fr,Es).iso" /sdcard/
+     ```
+3. **Abra o Jogo:**
+   - Na tela inicial (**TitleActivity**), clique em **Jogar** ou selecione o arquivo ISO através do botão de seleção.
+   - O instalador embutido extrairá os arquivos do jogo automaticamente para a pasta de dados do aplicativo.
 
 ---
 
-## 3. Compilando o Projeto
+## 3. Código C++ Recompilado Incluso no Repositório
 
-### Método A: Via Script Automatizado (Recomendado)
+Diferente do fluxo tradicional do ReXGlue que exige instalar a CLI do ReXGlue e extrair o `default.xex` no PC:
+- **Os 114 arquivos C++ gerados** (`generated/default/dantes_inferno_recomp.*.cpp`) e o `sources.cmake` já estão rastreados e sincronizados no repositório.
+- **Patches de Setjmp e Fibers** já estão aplicados diretamente no código-fonte.
+- **Vantagem:** Qualquer desenvolvedor pode clonar o projeto e compilar o APK diretamente pelo Android Studio ou terminal, sem precisar rodar `rexglue codegen` nem scripts de patch adicionais.
 
-Defina a variável do NDK e execute o script:
+---
 
+## 4. Compilando o Projeto (Para Desenvolvedores)
+
+### Requisitos:
+* **Android NDK:** r26b ou superior (`r26.1.10909125` testado com sucesso).
+* **JDK:** Java 17.
+* **Android SDK:** Build-Tools 34.
+
+### Método A: Linha de Comando (Gradle)
 ```bash
-export ANDROID_NDK_ROOT=$HOME/Android/Sdk/ndk/26.1.10909125
-./scripts/build-android.sh
+cd android
+./gradlew assembleRelease
 ```
+O APK final será gerado em `android/app/build/outputs/apk/release/app-release.apk`.
 
-O script irá:
-1. Compilar as bibliotecas nativas (`libdantes_inferno.so`, `librexruntime.so`, `librexgpu-xenos.so`) otimizadas para ARM64.
-2. Acionar o Gradle para gerar o APK pronto em `android/app/build/outputs/apk/debug/app-debug.apk`.
+### Método B: Android Studio
+1. Abra a pasta `android/` no **Android Studio**.
+2. Aguarde a sincronização do Gradle e do CMake.
+3. Conecte o dispositivo via USB (com Depuração USB ativada).
+4. Clique em **Run** ou compile via menu **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
 
-### Método B: Via Android Studio
+---
 
-1. Abra o **Android Studio**.
-2. Selecione **Open** e escolha a pasta `android/` deste repositório.
-3. O Android Studio sincronizará o Gradle e detectará o `CMakeLists.txt` automaticamente.
-4. Conecte seu dispositivo Android com depuração USB ativada e clique no botão **Run (Shift+F10)** ou selecione **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
+## 5. Correções de Estabilidade Aplicadas no Port Android
 
-### Método C: Via CMake Presets
+* **Orientação de Tela Travada em Landscape:**
+  - Forçado em `MainActivity.java` através de `SCREEN_ORIENTATION_SENSOR_LANDSCAPE` e dica do SDL3 `SDL_HINT_ORIENTATIONS`, impedindo recreações acidentais da Activity ao girar o aparelho.
+* **Correção de Memória Scudo (Android Heap):**
+  - Ajustado em `src/rex_app.cpp` no método `OnDestroy()`: liberação segura (`.release()`) dos drawers Vulkan/ImGui para evitar o erro fatal `Scudo: invalid chunk state`.
+* **Caminhos de Dados e Permissões:**
+  - Configuração explícita de `user_data_root` e `cache_root` no armazenamento interno do app em `src/dantes_main_android.cpp`, prevenindo falhas de permissão (`Permission denied` em `/data/.local`).
+* **Instalador XDVDFS Embutido:**
+  - Módulos `src/dantes_iso_installer.cpp` e `.h` para montagem e extração direta de ISOs XGD2/XGD3 no Android.
 
-Se você deseja compilar apenas os binários `.so` nativos via linha de comando:
-
-```bash
-cmake --preset android-arm64-release -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake
-cmake --build out/build/android-arm64-release --target dantes_inferno --parallel
-```
 
 ---
 
