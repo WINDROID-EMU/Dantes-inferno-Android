@@ -41,6 +41,8 @@ public class MainActivity extends SDLActivity {
     public static native void nativeOnIsoPicked(String path);
     public static native void nativeSetDriverConfig(String driverDir, String driverName, String hookLibDir, boolean useTurnip, boolean enableTurbo, boolean disableDebug);
     public static native void nativeSetGraphicsConfig(int resScale, boolean vsync, String presentEffect, boolean asyncShaders, int pipelineThreads, int presentMode);
+    public static native float nativeGetEngineFps();
+    public static native float nativeGetEngineFrametime();
 
     @Override
     protected String[] getLibraries() {

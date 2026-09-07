@@ -274,5 +274,15 @@ Java_com_dantesinferno_game_MainActivity_nativeSetGraphicsConfig(
   MAIN_LOGI("JNI: nativeSetGraphicsConfig: res=%d, vsync=%d, effect=%s, async=%d, threads=%d, mode=%d",
             res_scale, vsync, g_graphics_config.present_effect.c_str(), async_shaders, pipeline_threads, present_mode);
 }
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_dantesinferno_game_MainActivity_nativeGetEngineFps(JNIEnv* /* env */, jclass /* clazz */) {
+  return g_guest_fps.load(std::memory_order_relaxed);
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_dantesinferno_game_MainActivity_nativeGetEngineFrametime(JNIEnv* /* env */, jclass /* clazz */) {
+  return g_guest_frametime_ms.load(std::memory_order_relaxed);
+}
 #endif
 

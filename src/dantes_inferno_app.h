@@ -22,6 +22,10 @@
 
 #include "dantes_inferno_hooks.h"
 
+// Real-time guest engine statistics (queried by Android JNI / HUD)
+inline std::atomic<float> g_guest_fps{0.0f};
+inline std::atomic<float> g_guest_frametime_ms{0.0f};
+
 REXCVAR_DEFINE_DOUBLE(time_scalar, 1.0, "Gameplay",
                       "Guest time scaling factor (1.0 = normal, 50.0 = fast-forward)");
 
@@ -73,6 +77,9 @@ class FpsOverlayDialog : public rex::ui::ImGuiDialog {
       smoothed_fps_ = smoothed_fps_ * 0.85 + guest_fps * 0.15;
       smoothed_ft_ = smoothed_ft_ * 0.85 + guest_ft_ms * 0.15;
     }
+
+    g_guest_fps.store(static_cast<float>(smoothed_fps_), std::memory_order_relaxed);
+    g_guest_frametime_ms.store(static_cast<float>(smoothed_ft_), std::memory_order_relaxed);
 
     ImGui::SetNextWindowPos(ImVec2(8, 8), ImGuiCond_Always);
     ImGui::SetNextWindowBgAlpha(0.65f);
@@ -281,6 +288,7 @@ class DantesInfernoApp : public rex::ReXApp {
     // Mobile-specific defaults & AdrenoTools Turnip driver initialization
     // Disable SDK's ImGui touch controls because we use the native Android virtual controller
     rex::cvar::SetFlagByName("show_touch_controls", "false");
+    rex::cvar::SetFlagByName("show_fps_overlay", "true");
     rex::cvar::SetFlagByName("mnk_mode", "false");
     dantes::driver::InitializeDriver();
     dantes::driver::LogTextureCompressionSupport();

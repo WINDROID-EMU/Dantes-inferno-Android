@@ -151,21 +151,38 @@ public class VirtualControllerLayout extends RelativeLayout {
                     mFrameCounter++;
                     long deltaNanos = frameTimeNanos - mLastFpsUpdateNanos;
                     if (deltaNanos >= 500_000_000L) { // Update twice a second (every 500ms) for smooth reading
-                        double fps = (mFrameCounter * 1_000_000_000.0) / deltaNanos;
-                        double frameTimeMs = 1000.0 / Math.max(1.0, fps);
+                        float nativeFps = 0.0f;
+                        float nativeFt = 0.0f;
+                        try {
+                            nativeFps = MainActivity.nativeGetEngineFps();
+                            nativeFt = MainActivity.nativeGetEngineFrametime();
+                        } catch (Throwable ignored) {}
+
+                        double displayFps;
+                        double displayFt;
+
+                        if (nativeFps > 0.0f) {
+                            // True Xbox 360 guest emulation frame rate from CommandProcessor
+                            displayFps = nativeFps;
+                            displayFt = nativeFt;
+                        } else {
+                            // Fallback to display Choreographer swap rate if engine has not finished initializing
+                            displayFps = (mFrameCounter * 1_000_000_000.0) / deltaNanos;
+                            displayFt = 1000.0 / Math.max(1.0, displayFps);
+                        }
 
                         if (tvHudFps != null) {
-                            tvHudFps.setText(String.format(java.util.Locale.US, "%.1f FPS", fps));
-                            if (fps >= 55.0) {
+                            tvHudFps.setText(String.format(java.util.Locale.US, "%.1f FPS", displayFps));
+                            if (displayFps >= 55.0) {
                                 tvHudFps.setTextColor(0xFF3FB950); // Vibrant Green
-                            } else if (fps >= 30.0) {
+                            } else if (displayFps >= 30.0) {
                                 tvHudFps.setTextColor(0xFFE3B341); // Yellow / Gold
                             } else {
                                 tvHudFps.setTextColor(0xFFF85149); // Red
                             }
                         }
                         if (tvHudFrametime != null) {
-                            tvHudFrametime.setText(String.format(java.util.Locale.US, "%.1f ms", frameTimeMs));
+                            tvHudFrametime.setText(String.format(java.util.Locale.US, "%.1f ms", displayFt));
                         }
 
                         mFrameCounter = 0;
