@@ -225,6 +225,7 @@ implemented in pure Python.
 - [x] Vulkan pipeline & shader stutter optimization: enabled persistent on-disk Mesa shader cache (`MESA_SHADER_CACHE_DIR`, `MESA_DISK_CACHE_SINGLE_FILE=1`), `vulkan_async_skip_incomplete_frames=true`, and increased compilation threads to 6.
 - [x] Enhanced audio underrun prevention: expanded SDL audio device sample buffer to 4096 frames (~85ms safety buffer) and `audio_maxqframes=256`.
 - [x] Prebuilt release APK packaged at `apk/dantes_inferno_arm64.apk`
+- [x] Automated GitHub Actions CI/CD workflow (`.github/workflows/android-release.yml`): builds ARM64 release APK and automatically publishes GitHub Releases on tag, push to main, or workflow dispatch.
 - [ ] DLC auto-install hook in OnPostSetup
 
 - [ ] Ultrawide projection hook (requires RE of generated code)

@@ -6,6 +6,7 @@ cmake-build-*/
 .rexglue-test-build/
 *.AppImage
 *.so
+!thirdparty/rexglue-sdk/**/*.so
 /dantes_inferno
 /config/
 /logs/
@@ -19,9 +20,6 @@ generated/*/codegen.build.stamp
 !generated/rexglue.cmake
 !generated/.gitkeep
 
-
-# --- ReXGlue SDK (cloned via setup script, not tracked here) ---
-thirdparty/rexglue-sdk/
 
 # --- Disc images (copyrighted, do NOT commit) ---
 disc/
