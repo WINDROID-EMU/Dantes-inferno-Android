@@ -1,0 +1,205 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"jsonFile" : "directory-.-Release-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.6.0"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						1,
+						2
+					]
+				},
+				{
+					"build" : "thirdparty/libadrenotools",
+					"childIndexes" : 
+					[
+						2,
+						3
+					],
+					"jsonFile" : "directory-thirdparty.libadrenotools-Release-6550677d5869e7028424.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.14"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "thirdparty/libadrenotools",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "thirdparty/libadrenotools/lib/linkernsbypass",
+					"jsonFile" : "directory-thirdparty.libadrenotools.lib.linkernsbypass-Release-a88c7eb0b5c845022851.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.14"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 2,
+					"source" : "thirdparty/libadrenotools/lib/linkernsbypass",
+					"targetIndexes" : 
+					[
+						6
+					]
+				},
+				{
+					"build" : "thirdparty/libadrenotools/src/hook",
+					"jsonFile" : "directory-thirdparty.libadrenotools.src.hook-Release-68d65ed57680485821d3.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.14"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "thirdparty/libadrenotools/src/hook",
+					"targetIndexes" : 
+					[
+						3,
+						4,
+						5,
+						7
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "dantes_inferno",
+					"targetIndexes" : 
+					[
+						1,
+						2
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						2
+					],
+					"directoryIndexes" : 
+					[
+						1,
+						3
+					],
+					"name" : "adrenotools",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						3,
+						4,
+						5,
+						7
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2
+					],
+					"name" : "linkernsbypass",
+					"parentIndex" : 1,
+					"targetIndexes" : 
+					[
+						6
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 1,
+					"id" : "adrenotools::@fb70046bfd4ba7a087ad",
+					"jsonFile" : "target-adrenotools-Release-3bd46ce1592f8d0b1ee9.json",
+					"name" : "adrenotools",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dantes_inferno::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dantes_inferno-Release-a007dd57e08687f23ddf.json",
+					"name" : "dantes_inferno",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dantes_inferno_codegen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dantes_inferno_codegen-Release-080095a1a6023de128ff.json",
+					"name" : "dantes_inferno_codegen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "file_redirect_hook::@ad2af3f6a8638f61266a",
+					"jsonFile" : "target-file_redirect_hook-Release-08c8c2a2bd7264b5f408.json",
+					"name" : "file_redirect_hook",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "gsl_alloc_hook::@ad2af3f6a8638f61266a",
+					"jsonFile" : "target-gsl_alloc_hook-Release-043e8c80d5346e07dc83.json",
+					"name" : "gsl_alloc_hook",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "hook_impl::@ad2af3f6a8638f61266a",
+					"jsonFile" : "target-hook_impl-Release-f23ecf048ad9425e0077.json",
+					"name" : "hook_impl",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "linkernsbypass::@296c12c045d62b51d7dd",
+					"jsonFile" : "target-linkernsbypass-Release-513273cd51f3f8e0c9d5.json",
+					"name" : "linkernsbypass",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "main_hook::@ad2af3f6a8638f61266a",
+					"jsonFile" : "target-main_hook-Release-dfead2cf6095fa7b8bc7.json",
+					"name" : "main_hook",
+					"projectIndex" : 1
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/media/windroid/SSD KING/Dantes-inferno-Android/android/app/.cxx/Release/6z2z6245/arm64-v8a",
+		"source" : "/media/windroid/SSD KING/Dantes-inferno-Android"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

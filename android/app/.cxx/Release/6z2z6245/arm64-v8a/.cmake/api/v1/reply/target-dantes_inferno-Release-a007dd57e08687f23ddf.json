@@ -1,0 +1,467 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/android/app/build/intermediates/cxx/Release/6z2z6245/obj/arm64-v8a/libdantes_inferno.so"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"target_link_libraries",
+			"add_dependencies",
+			"target_compile_options",
+			"target_compile_definitions",
+			"target_include_directories",
+			"set_source_files_properties",
+			"include"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt",
+			"generated/rexglue.cmake"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 62,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 67,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 82,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 100,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 63,
+				"parent" : 0
+			},
+			{
+				"command" : 5,
+				"file" : 0,
+				"line" : 73,
+				"parent" : 0
+			},
+			{
+				"command" : 7,
+				"file" : 0,
+				"line" : 18,
+				"parent" : 0
+			},
+			{
+				"file" : 1,
+				"parent" : 7
+			},
+			{
+				"command" : 6,
+				"file" : 1,
+				"line" : 63,
+				"parent" : 8
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -O3 -DNDEBUG  -fPIC -fvisibility=default"
+				},
+				{
+					"backtrace" : 4,
+					"fragment" : "-march=armv8-a"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-pthread"
+				},
+				{
+					"fragment" : "-std=gnu++2b"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 5,
+					"define" : "REXGLUE_BUILD_CONFIG=\"Release\""
+				},
+				{
+					"backtrace" : 2,
+					"define" : "REX_HAS_VULKAN=1"
+				},
+				{
+					"backtrace" : 2,
+					"define" : "SPDLOG_COMPILED_LIB"
+				},
+				{
+					"backtrace" : 2,
+					"define" : "SPDLOG_FMT_EXTERNAL"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "__ANDROID__"
+				},
+				{
+					"define" : "dantes_inferno_EXPORTS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/src"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/generated/default"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/libadrenotools/include"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/rexglue-sdk/thirdparty/imgui"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/rexglue-sdk/share/rexglue"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/libadrenotools/lib/linkernsbypass/."
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/rexglue-sdk/include"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					2
+				],
+				"standard" : "23"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2
+			],
+			"sysroot" : 
+			{
+				"path" : "/home/windroid/Android/Sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+			}
+		},
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -O3 -DNDEBUG  -fPIC -fvisibility=default"
+				},
+				{
+					"backtrace" : 4,
+					"fragment" : "-march=armv8-a"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-pthread"
+				},
+				{
+					"fragment" : "-std=gnu++2b"
+				},
+				{
+					"backtrace" : 9,
+					"fragment" : "-gline-tables-only"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 5,
+					"define" : "REXGLUE_BUILD_CONFIG=\"Release\""
+				},
+				{
+					"backtrace" : 2,
+					"define" : "REX_HAS_VULKAN=1"
+				},
+				{
+					"backtrace" : 2,
+					"define" : "SPDLOG_COMPILED_LIB"
+				},
+				{
+					"backtrace" : 2,
+					"define" : "SPDLOG_FMT_EXTERNAL"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "__ANDROID__"
+				},
+				{
+					"define" : "dantes_inferno_EXPORTS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/src"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/generated/default"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/libadrenotools/include"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/rexglue-sdk/thirdparty/imgui"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/rexglue-sdk/share/rexglue"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/libadrenotools/lib/linkernsbypass/."
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/rexglue-sdk/include"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					2
+				],
+				"standard" : "23"
+			},
+			"sourceIndexes" : 
+			[
+				3
+			],
+			"sysroot" : 
+			{
+				"path" : "/home/windroid/Android/Sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+			}
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "adrenotools::@fb70046bfd4ba7a087ad"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "linkernsbypass::@296c12c045d62b51d7dd"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hook_impl::@ad2af3f6a8638f61266a"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "main_hook::@ad2af3f6a8638f61266a"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "file_redirect_hook::@ad2af3f6a8638f61266a"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "gsl_alloc_hook::@ad2af3f6a8638f61266a"
+		}
+	],
+	"id" : "dantes_inferno::@6890427a1f51a3e7e1df",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments  -Wl,--gc-sections",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-Wl,-u,JNI_OnLoad",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "../../../../../../thirdparty/rexglue-sdk/lib/librexruntimerd.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-landroid",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-llog",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "thirdparty/libadrenotools/libadrenotools.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "../../../../../../thirdparty/rexglue-sdk/lib/libspdlogrd.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "../../../../../../thirdparty/rexglue-sdk/lib/libfmtrd.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-pthread",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "../../../../../../thirdparty/rexglue-sdk/lib/libSDL3rd.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-lm",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-lOpenSLES",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-llog",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "thirdparty/libadrenotools/lib/linkernsbypass/liblinkernsbypass.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-landroid",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-ldl",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-latomic -lm",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX",
+		"sysroot" : 
+		{
+			"path" : "/home/windroid/Android/Sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+		}
+	},
+	"name" : "dantes_inferno",
+	"nameOnDisk" : "libdantes_inferno.so",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				4
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/dantes_driver.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/dantes_main_android.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/rex_app.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"isGenerated" : true,
+			"path" : "generated/default/dantes_inferno_init.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "generated/default/codegen.build.stamp.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "SHARED_LIBRARY"
+}

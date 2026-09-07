@@ -16,6 +16,8 @@
 #include <cstring>
 #include <cstdlib>
 
+#include "dantes_inferno_hooks.h"
+
 REXCVAR_DEFINE_DOUBLE(time_scalar, 1.0, "Gameplay",
                       "Guest time scaling factor (1.0 = normal, 50.0 = fast-forward)");
 
@@ -115,6 +117,9 @@ class FpsOverlayDialog : public rex::ui::ImGuiDialog {
   double smoothed_ft_ = 0.0;
 };
 
+#include "touch_overlay.h"
+#include "dantes_driver.h"
+
 class DantesInfernoApp : public rex::ReXApp {
  public:
   using rex::ReXApp::ReXApp;
@@ -129,14 +134,34 @@ class DantesInfernoApp : public rex::ReXApp {
     if (!paths.game_data_root.empty())
       return;
 
+    // Check environment override (e.g. passed from Android Activity/JNI)
+    if (const char* env_root = std::getenv("DANTES_GAME_ROOT")) {
+      std::filesystem::path p(env_root);
+      std::error_code ec;
+      if (std::filesystem::is_directory(p, ec)) {
+        paths.game_data_root = p;
+        REXLOG_INFO("PATHS: Found game_data_root via DANTES_GAME_ROOT: {}", p.string());
+        return;
+      }
+    }
+
     const std::filesystem::path candidates[] = {
+        // Standard PC candidates
         rex::filesystem::GetExecutableFolder() / "game",
         std::filesystem::current_path() / "game",
+        // Android storage candidates
+        std::filesystem::path("/sdcard/DantesInferno/game"),
+        std::filesystem::path("/sdcard/DantesInferno"),
+        std::filesystem::path("/storage/emulated/0/DantesInferno/game"),
+        std::filesystem::path("/storage/emulated/0/DantesInferno"),
+        std::filesystem::path("/sdcard/Android/data/com.dantesinferno.game/files/game"),
+        std::filesystem::path("/data/data/com.dantesinferno.game/files/game"),
     };
     for (const auto& candidate : candidates) {
       std::error_code ec;
       if (std::filesystem::is_directory(candidate, ec)) {
         paths.game_data_root = candidate;
+        REXLOG_INFO("PATHS: Selected game_data_root: {}", candidate.string());
         return;
       }
     }
@@ -147,9 +172,17 @@ class DantesInfernoApp : public rex::ReXApp {
 
     REXCVAR_SET(input_backend, std::string("sdl"));
 
+#if defined(__ANDROID__)
+    // Mobile-specific defaults & AdrenoTools Turnip driver initialization
+    rex::cvar::SetFlagByName("show_touch_controls", "true");
+    rex::cvar::SetFlagByName("mnk_mode", "false");
+    dantes::driver::InitializeDriver();
+    dantes::driver::LogTextureCompressionSupport();
+#else
     rex::cvar::SetFlagByName("mnk_mode", "true");
     rex::cvar::SetFlagByName("mnk_mouse", "true");
     rex::cvar::SetFlagByName("mnk_sensitivity", "1.5");
+#endif
 
     rex::cvar::SetFlagByName("keybind_a", "Space");
     rex::cvar::SetFlagByName("keybind_b", "F");
@@ -221,6 +254,16 @@ class DantesInfernoApp : public rex::ReXApp {
           }
         });
 
+    rex::cvar::RegisterChangeCallback("show_touch_controls",
+        [this](std::string_view, std::string_view new_value) {
+          bool show = (new_value == "true" || new_value == "1");
+          if (show && !touch_overlay_ && imgui_drawer()) {
+            touch_overlay_ = std::make_unique<TouchOverlayDialog>(imgui_drawer());
+          } else if (!show && touch_overlay_) {
+            touch_overlay_.reset();
+          }
+        });
+
     rex::ui::RegisterBind("bind_exit_game", "Alt+F4",
                           "Exit game to desktop", [this] {
       app_context().RequestDeferredQuit();
@@ -232,6 +275,10 @@ class DantesInfernoApp : public rex::ReXApp {
           ? static_cast<rex::graphics::GraphicsSystem*>(gfx_sys)->command_processor()
           : nullptr;
       fps_overlay_ = std::make_unique<FpsOverlayDialog>(imgui_drawer(), command_processor);
+    }
+
+    if (REXCVAR_GET(show_touch_controls) && imgui_drawer()) {
+      touch_overlay_ = std::make_unique<TouchOverlayDialog>(imgui_drawer());
     }
 
     rex::ui::RegisterBind("bind_fps_overlay", "F1",
@@ -264,11 +311,17 @@ class DantesInfernoApp : public rex::ReXApp {
     rex::ui::UnregisterBind("bind_exit_game");
     rex::cvar::UnregisterChangeCallbacks("time_scalar");
     rex::cvar::UnregisterChangeCallbacks("ultrawide_target_aspect");
+    rex::cvar::UnregisterChangeCallbacks("show_touch_controls");
+    touch_overlay_.reset();
     fps_overlay_.reset();
     rex::chrono::Clock::set_guest_time_scalar(1.0);
     rex::cvar::SetFlagByName("vsync", "true");
+#if defined(__ANDROID__)
+    dantes::driver::ShutdownDriver();
+#endif
   }
 
  private:
   std::unique_ptr<FpsOverlayDialog> fps_overlay_;
+  std::unique_ptr<TouchOverlayDialog> touch_overlay_;
 };

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.22.1)
 project(dantes_inferno LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -8,7 +8,21 @@ if(NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
     add_compile_options(-mssse3 -msse4.1)
 endif()
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/rexglue-sdk/lib/cmake/rexglue")
+    list(PREPEND CMAKE_FIND_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/rexglue-sdk")
+    list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/rexglue-sdk")
+    set(rexglue_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/rexglue-sdk/lib/cmake/rexglue" CACHE PATH "" FORCE)
+    set(REXSDK_DIR "" CACHE PATH "" FORCE)
+endif()
+
 include(generated/rexglue.cmake)
+
+if(TARGET rex::rexglue)
+    set_target_properties(rex::rexglue PROPERTIES
+        IMPORTED_LOCATION "/usr/bin/true"
+    )
+endif()
+set(CMAKE_MAP_IMPORTED_CONFIG_RELEASE RelWithDebInfo Release "")
 
 if(REXSDK_DIR)
     # The generated depfile only tracks the manifest and XEX. Track the ARM VMX
@@ -26,21 +40,66 @@ set(DANTESINFERNO_SOURCES
     src/main.cpp
 )
 
-if(WIN32)
+if(ANDROID)
+    if(NOT DEFINED CMAKE_ANDROID_ARCH_ABI AND DEFINED ANDROID_ABI)
+        set(CMAKE_ANDROID_ARCH_ABI ${ANDROID_ABI})
+    endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/libadrenotools/CMakeLists.txt")
+        add_subdirectory(thirdparty/libadrenotools)
+    endif()
+
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/generated/default/sources.cmake")
+        include("${CMAKE_CURRENT_SOURCE_DIR}/generated/default/sources.cmake")
+    endif()
+
+    set(DANTES_ANDROID_SOURCES
+        src/dantes_driver.cpp
+        src/dantes_main_android.cpp
+        src/rex_app.cpp
+        ${GENERATED_SOURCES}
+    )
+
+    add_library(dantes_inferno SHARED ${DANTES_ANDROID_SOURCES})
+    target_compile_definitions(dantes_inferno PRIVATE
+        REXGLUE_BUILD_CONFIG="Release"
+        __ANDROID__
+    )
+    target_link_libraries(dantes_inferno PRIVATE
+        rex::runtime
+        android
+        log
+        adrenotools
+    )
+    target_include_directories(dantes_inferno PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/default"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/libadrenotools/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/rexglue-sdk/thirdparty/imgui"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/rexglue-sdk/share/rexglue"
+    )
+    if(TARGET main_hook)
+        add_dependencies(dantes_inferno
+            main_hook
+            hook_impl
+            file_redirect_hook
+            gsl_alloc_hook
+        )
+    endif()
+elseif(WIN32)
     list(APPEND DANTESINFERNO_SOURCES src/dantes_inferno.rc)
     add_executable(dantes_inferno WIN32 ${DANTESINFERNO_SOURCES})
+    rexglue_setup_target(dantes_inferno GPU_PLUGINS xenos)
 else()
     add_executable(dantes_inferno ${DANTESINFERNO_SOURCES})
+    rexglue_setup_target(dantes_inferno GPU_PLUGINS xenos)
 endif()
 
-rexglue_setup_target(dantes_inferno GPU_PLUGINS xenos)
-
-if(NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
-    # ARMv8.4-A is supported by the target SoC without relying on -mcpu=native,
-    # which is unsafe under this device's userspace/toolchain combination.
-    target_compile_options(dantes_inferno PRIVATE -march=armv8.4-a)
+if(NOT MSVC AND (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64" OR ANDROID_ABI MATCHES "arm64-v8a"))
+    # Base ARMv8-A architecture supported across ARM64 devices
+    target_compile_options(dantes_inferno PRIVATE -march=armv8-a)
     if(TARGET dantes_inferno_recomp)
-        target_compile_options(dantes_inferno_recomp PRIVATE -march=armv8.4-a)
+        target_compile_options(dantes_inferno_recomp PRIVATE -march=armv8-a)
     endif()
 
     # Optimize across the many generated recompilation translation units.
@@ -55,6 +114,14 @@ if(NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
     else()
         message(WARNING "LTO unavailable for dantes_inferno: ${DANTESINFERNO_IPO_ERROR}")
     endif()
+endif()
+
+if(ANDROID)
+    # Ensure symbols needed by SDLActivity / JNI entrypoints remain exported
+    set_target_properties(dantes_inferno PROPERTIES
+        CXX_VISIBILITY_PRESET default
+        VISIBILITY_INLINES_HIDDEN FALSE
+    )
 endif()
 
 target_include_directories(dantes_inferno PRIVATE

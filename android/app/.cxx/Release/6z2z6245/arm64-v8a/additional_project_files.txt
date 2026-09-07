@@ -1,0 +1,10 @@
+/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/libadrenotools/include/adrenotools/bcenabler.h
+/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/libadrenotools/include/adrenotools/driver.h
+/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/libadrenotools/include/adrenotools/priv.h
+/media/windroid/SSD KING/Dantes-inferno-Android/generated/default/codegen.build.stamp.rule
+/media/windroid/SSD KING/Dantes-inferno-Android/android/app/.cxx/Release/6z2z6245/arm64-v8a/CMakeFiles/dantes_inferno_codegen
+/media/windroid/SSD KING/Dantes-inferno-Android/android/app/.cxx/Release/6z2z6245/arm64-v8a/CMakeFiles/dantes_inferno_codegen.rule
+/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/libadrenotools/src/hook/hook_impl.h
+/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/libadrenotools/src/hook/hook_impl_params.h
+/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/libadrenotools/lib/linkernsbypass/android_linker_ns.h
+/media/windroid/SSD KING/Dantes-inferno-Android/thirdparty/libadrenotools/lib/linkernsbypass/elf_soname_patcher.h

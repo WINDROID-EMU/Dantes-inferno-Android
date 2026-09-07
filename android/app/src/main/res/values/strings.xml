@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Dante\'s Inferno</string>
+    <string name="select_game_dir">Selecione a pasta do jogo (contendo default.xex)</string>
+    <string name="storage_permission_msg">O Dante\'s Inferno precisa de acesso ao armazenamento para ler os dados do jogo (~7.8GB).</string>
+    <string name="game_found">Arquivos do jogo encontrados!</string>
+    <string name="game_not_found">default.xex não encontrado na pasta selecionada.</string>
+</resources>

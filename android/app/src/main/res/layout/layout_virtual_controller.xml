@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/virtual_controller_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- Top Left: LT & LB Bumpers -->
+    <LinearLayout
+        android:id="@+id/layout_left_bumpers"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/btn_lt"
+            android:layout_width="100dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_btn_bumper"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="LT"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btn_lb"
+            android:layout_width="100dp"
+            android:layout_height="44dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_btn_bumper"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="LB"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Top Right: RT & RB Bumpers -->
+    <LinearLayout
+        android:id="@+id/layout_right_bumpers"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/btn_rt"
+            android:layout_width="100dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_btn_bumper"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="RT"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btn_rb"
+            android:layout_width="100dp"
+            android:layout_height="44dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_btn_bumper"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="RB"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Bottom Left: Left Analog Stick (LS) -->
+    <com.dantesinferno.game.VirtualJoystickView
+        android:id="@+id/stick_left"
+        android:layout_width="105dp"
+        android:layout_height="105dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="131dp"
+        android:layout_marginBottom="44dp" />
+
+    <!-- Directional D-Pad (Cross) -->
+    <com.dantesinferno.game.VirtualDpadView
+        android:id="@+id/dpad"
+        android:layout_width="90dp"
+        android:layout_height="90dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="-158dp"
+        android:layout_marginBottom="176dp"
+        android:layout_toEndOf="@id/stick_left" />
+
+    <!-- Center Navigation & Thumb Click Buttons -->
+    <LinearLayout
+        android:id="@+id/layout_center_buttons"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="16dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <!-- L3 Button -->
+        <TextView
+            android:id="@+id/btn_l3"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/bg_btn_menu"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="L3"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!-- BACK / SELECT Button -->
+        <TextView
+            android:id="@+id/btn_select"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/bg_btn_menu"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="BACK"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <!-- START Button -->
+        <TextView
+            android:id="@+id/btn_start"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/bg_btn_menu"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="START"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <!-- R3 Button -->
+        <TextView
+            android:id="@+id/btn_r3"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/bg_btn_menu"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="R3"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Bottom Right: Right Analog Stick (RS) -->
+    <com.dantesinferno.game.VirtualJoystickView
+        android:id="@+id/stick_right"
+        android:layout_width="85dp"
+        android:layout_height="85dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="36dp"
+        android:layout_marginBottom="93dp"
+        android:layout_toStartOf="@id/layout_action_buttons" />
+
+    <!-- Action Buttons Diamond Cluster (A, B, X, Y) -->
+    <RelativeLayout
+        android:id="@+id/layout_action_buttons"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="24dp">
+
+        <!-- Y Button (Top, Yellow) -->
+        <TextView
+            android:id="@+id/btn_y"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/bg_btn_action_y"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="Y"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- X Button (Left, Blue) -->
+        <TextView
+            android:id="@+id/btn_x"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_btn_action_x"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="X"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- B Button (Right, Red) -->
+        <TextView
+            android:id="@+id/btn_b"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_btn_action_b"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="B"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- A Button (Bottom, Green) -->
+        <TextView
+            android:id="@+id/btn_a"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/bg_btn_action_a"
+            android:clickable="true"
+            android:focusable="false"
+            android:gravity="center"
+            android:text="A"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+    </RelativeLayout>
+
+</RelativeLayout>
