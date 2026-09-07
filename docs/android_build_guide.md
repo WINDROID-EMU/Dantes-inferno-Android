@@ -74,7 +74,26 @@ O APK final será gerado em `android/app/build/outputs/apk/release/app-release.a
 
 ---
 
-## 5. Correções de Estabilidade Aplicadas no Port Android
+## 5. Tela de Configurações e Responsividade UI (AdrenoTools, Vulkan e Persistência)
+
+O aplicativo conta com uma tela completa de configurações (`SettingsActivity`), projetada com arquitetura em 2 colunas landscape e totalmente adaptada para telas de alta densidade (como **Xiaomi 12 - 2400x1080 / 440 DPI**):
+
+* **Design Empilhado Responsivo (Label + Campo):**
+  - Em telas de alta resolução e DPI elevado, campos horizontais causavam quebra de texto vertical no título dos menus. Todos os seletores (Spinners) foram refatorados com layout empilhado (`Label` superior de largura total e campo dropdown inferior com fundo estilizado `bg_spinner_field`), eliminando quebras de palavras e espaçamentos vazios.
+* **Persistência Tripla Garantida:**
+  1. **SharedPreferences:** Salva preferências do usuário no app de forma permanente.
+  2. **Geração Física de `dantes_inferno.toml`:** O aplicativo gera e atualiza fisicamente o arquivo TOML na pasta do jogo, lido na inicialização pelo ReXGlue (`rex::cvar::LoadConfig`).
+  3. **Ponte JNI Direta (`nativeSetGraphicsConfig`):** Ao iniciar o jogo, os valores de resolução, VSync, upscaler e threads são enviados diretamente ao C++ (`dantes_main_android.cpp`), aplicando os cvars no runtime Vulkan sem depender apenas de arquivos em disco.
+* **Controles Integrados:**
+  - **Driver GPU:** Alternador Turnip / Qualcomm OEM, Modo Turbo (GPU Boost), instalador de `.zip` e status em tempo real.
+  - **Controles Touch:** Ativar/desativar botões virtuais e ajuste de opacidade (25% a 100%).
+  - **Estabilidade:** Desativação de logs em disco e depuração (elimina stutters de I/O e validação de GPU).
+  - **Gráficos Vulkan:** Resolução (720p 1x até 1440p 2x), VSync, Upscaler (FXAA, CAS, FSR), Modo Vulkan Present (FIFO, Mailbox, Immediate) e Threads de Criação de Pipeline.
+  - **Cache de Shaders:** Leitura do tamanho real em disco (MB) e botão de limpeza instantânea.
+
+---
+
+## 6. Correções de Estabilidade Aplicadas no Port Android
 
 * **Orientação de Tela Travada em Landscape:**
   - Forçado em `MainActivity.java` através de `SCREEN_ORIENTATION_SENSOR_LANDSCAPE` e dica do SDL3 `SDL_HINT_ORIENTATIONS`, impedindo recreações acidentais da Activity ao girar o aparelho.
@@ -85,10 +104,9 @@ O APK final será gerado em `android/app/build/outputs/apk/release/app-release.a
 * **Instalador XDVDFS Embutido:**
   - Módulos `src/dantes_iso_installer.cpp` e `.h` para montagem e extração direta de ISOs XGD2/XGD3 no Android.
 
-
 ---
 
-## 4. Controles e Jogabilidade no Android
+## 7. Controles e Jogabilidade no Android
 
 O port foi adaptado para oferecer duas formas de controle no Android:
 
@@ -115,7 +133,8 @@ O port foi adaptado para oferecer duas formas de controle no Android:
 
 ---
 
-## 5. Dicas de Otimização e Desempenho
+## 8. Dicas de Otimização e Desempenho
+
 
 * **Escala de Resolução:** Por padrão, o jogo roda na resolução nativa do Xbox 360 (1280x720). Em SoCs topo de linha (Snapdragon 8 Gen 2 / Gen 3 / Dimensity 9300), a escala pode ser aumentada nas Configurações da Tela Título.
 * **V-Sync:** O jogo foi projetado para rodar a 60 FPS com VSync ativo.
