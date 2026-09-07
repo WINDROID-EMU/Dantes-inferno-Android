@@ -215,10 +215,10 @@ public class SettingsActivity extends AppCompatActivity {
         // Resolution Scale Spinner
         if (spinnerResScale != null) {
             String[] scales = new String[] {
-                "720p (Nativo Xbox 360 - 1x)",
-                "1080p (Alta Qualidade - 1.5x / 2x)",
+                "720p (Nativo - 1x)",
+                "1080p (Alta Qualidade - 2x)",
                 "1440p (SSAA Máximo - 2x)",
-                "540p (Modo Desempenho)"
+                "540p (Desempenho)"
             };
             ArrayAdapter<String> scaleAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, scales);
             spinnerResScale.setAdapter(scaleAdapter);
@@ -248,10 +248,10 @@ public class SettingsActivity extends AppCompatActivity {
         // Present Effect / Upscaler Spinner
         if (spinnerPresentEffect != null) {
             String[] effects = new String[] {
-                "Nenhum (Bilinear Nativo)",
-                "FXAA (Anti-Aliasing Rápido)",
-                "CAS (AMD FidelityFX Contrast Adaptive)",
-                "FSR (AMD FidelityFX Super Resolution)"
+                "Nenhum (Bilinear)",
+                "FXAA (Anti-Aliasing)",
+                "CAS (AMD Sharpening)",
+                "FSR (AMD Super Res)"
             };
             ArrayAdapter<String> effectAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, effects);
             spinnerPresentEffect.setAdapter(effectAdapter);
@@ -272,8 +272,8 @@ public class SettingsActivity extends AppCompatActivity {
         // Vulkan Present Mode Spinner
         if (spinnerVulkanPresentMode != null) {
             String[] modes = new String[] {
-                "FIFO (Padrão com VSync)",
-                "Mailbox (Ultra Baixa Latência)",
+                "FIFO (VSync Padrão)",
+                "Mailbox (Baixa Latência)",
                 "Immediate (Sem VSync)"
             };
             ArrayAdapter<String> modeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, modes);
@@ -305,14 +305,15 @@ public class SettingsActivity extends AppCompatActivity {
         if (spinnerShaderThreads != null) {
             String[] threads = new String[] {
                 "Automático (Recomendado)",
-                "2 Threads de Criação",
-                "4 Threads de Criação",
-                "1 Thread (Modo Econômico)"
+                "2 Threads",
+                "4 Threads",
+                "1 Thread (Econômico)"
             };
             ArrayAdapter<String> threadAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, threads);
             spinnerShaderThreads.setAdapter(threadAdapter);
             int savedThreads = GameConfigManager.getPipelineThreadsIdx(this);
             spinnerShaderThreads.setSelection(savedThreads);
+
 
             spinnerShaderThreads.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
