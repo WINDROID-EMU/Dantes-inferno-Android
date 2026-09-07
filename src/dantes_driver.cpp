@@ -204,6 +204,11 @@ const DriverConfig& GetDriverConfig() {
 bool InitializeDriver() {
   std::lock_guard<std::mutex> lock(g_driver_mutex);
 
+  if (g_adrenotools_vulkan_handle != nullptr) {
+    LOGI("Turnip driver already initialized. Skipping redundant initialization.");
+    return true;
+  }
+
   if (!g_driver_config.use_turnip) {
     LOGI("Turnip driver is disabled. Using Android system Vulkan driver.");
     return false;

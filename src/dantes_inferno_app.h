@@ -294,9 +294,6 @@ class DantesInfernoApp : public rex::ReXApp {
     rex::cvar::SetFlagByName("vulkan_sparse_shared_memory", "false");
     rex::cvar::SetFlagByName("vulkan_push_constants_descriptors", "false");
     rex::cvar::SetFlagByName("vulkan_deferred_resolve_clears", "false");
-
-    dantes::driver::InitializeDriver();
-    dantes::driver::LogTextureCompressionSupport();
 #else
     rex::cvar::SetFlagByName("mnk_mode", "true");
     rex::cvar::SetFlagByName("mnk_mouse", "true");

@@ -79,6 +79,13 @@ int RunWindowedApp(int argc, char** argv) {
   rex::memory::AndroidInitialize();
   rex::thread::AndroidInitialize();
   rex::filesystem::AndroidInitialize();
+
+  // CRITICAL: Initialize AdrenoTools / Turnip driver BEFORE any Vulkan initialization!
+  // ReXApp::SetupPresentation() creates the VkInstance and VkDevice during OnInitialize().
+  // If InitializeDriver() is called late in OnPreSetup(), the VkInstance is already created
+  // by the Qualcomm proprietary driver, creating a fatal handle mismatch and black screen with Turnip.
+  dantes::driver::InitializeDriver();
+  dantes::driver::LogTextureCompressionSupport();
 #endif
   auto remaining = rex::cvar::Init(argc, argv);
 
@@ -183,9 +190,6 @@ int RunWindowedApp(int argc, char** argv) {
   }
 
   rex::InitLoggingEarly();
-
-  // NOTE: InitializeDriver() and LogTextureCompressionSupport() are called
-  // in DantesInfernoApp::OnPreSetup — do NOT call them here as well.
 
   int result = EXIT_FAILURE;
   {
