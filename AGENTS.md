@@ -253,6 +253,10 @@ implemented in pure Python.
       - Hardware `YIELD` instruction (`rex::platform::CpuYield()` / `rex::thread::MaybeYield()`): deschedules CPU speculative execution during spinlocks, thread waits, and sync points to prevent runaway thermal throttling on ARM64 big/prime cores.
       - Inlined bit manipulation (`math.h`): inlined `lzcnt`, `tzcnt`, `bit_scan_forward`, and `rotate_left` using standard C++20 `<bit>` (`std::countl_zero`, `std::countr_zero`, `std::rotl`) mapping directly to native `CLZ` and `ROR` hardware instructions.
       - 64-bit register safety in `FPSCRPlatform::setcsr` (`msr fpcr`): ensured strict 64-bit register allocation conforming to AArch64 ABI.
+- [x] Adreno 650 / A6xx Black Screen Fix:
+      - Removed `sysmem` and `WRAPPER_BLIT=1` from `a6xx_compat` / `TU_DEBUG`: preserved native GMEM on-chip tile buffer rendering so Xenos FBO renderpasses resolve color buffers properly to swapchain.
+      - Defaulted `isA6xxCompatEnabled` to `false` since modern Turnip (T30+, Kimchi R18) natively handles Adreno 650 without forced workarounds.
+      - Re-ordered `selectSixtyHertzDisplayMode()` before `super.onCreate()` in `MainActivity.java` to prevent surface invalidation (`VK_ERROR_OUT_OF_DATE_KHR` / `VK_SUBOPTIMAL_KHR`) caused by 90Hz->60Hz display modeswitches mid-launch.
 - [x] Ultrawide projection hook (ported from upstream v0.5.0 / commits ab67ab0e + d6187367):
       - `UltrawideAspectHook` precision fix: changed from `f29.f32` to `f29.f64` — reading the
         lower 32 bits of a PPC double register as float produced denormal values, silently
