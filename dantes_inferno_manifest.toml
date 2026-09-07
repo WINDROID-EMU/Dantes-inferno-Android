@@ -14,6 +14,12 @@ name = "UltrawideAspectHook"
 registers = ["f29"]
 after_instruction = true
 
+[[midasm_hook]]
+address = 0x8251DD38
+name = "UltrawideXScaleHook"
+registers = ["f12"]
+after_instruction = true
+
 
 [entrypoint.functions.0x8221FE10]
 name = "unresolved_target_8221FE10"

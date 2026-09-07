@@ -13,6 +13,7 @@ import android.os.Environment;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.Display;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsets;
@@ -42,8 +43,8 @@ public class MainActivity extends SDLActivity {
     // Native JNI bridge
     public static native void setGameRootEnv(String path);
     public static native void nativeOnIsoPicked(String path);
-    public static native void nativeSetDriverConfig(String driverDir, String driverName, String hookLibDir, boolean useTurnip, boolean enableTurbo, boolean disableDebug);
-    public static native void nativeSetGraphicsConfig(int resScale, boolean vsync, String presentEffect, boolean asyncShaders, int pipelineThreads, int presentMode);
+    public static native void nativeSetDriverConfig(String driverDir, String driverName, String hookLibDir, boolean useTurnip, boolean enableTurbo, boolean disableDebug, boolean a6xxCompat);
+    public static native void nativeSetGraphicsConfig(int resScale, boolean vsync, String presentEffect, boolean asyncShaders, int pipelineThreads, int presentMode, int anisotropic);
     public static native float nativeGetEngineFps();
     public static native float nativeGetEngineFrametime();
 
@@ -102,6 +103,14 @@ public class MainActivity extends SDLActivity {
             }
         }
 
+        // Request minimal post-processing (ALLM / Game Mode) on supported displays
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setPreferMinimalPostProcessing(true);
+        }
+
+        // Pin display mode to 60 Hz to prevent frame judder on 90Hz/120Hz/144Hz displays
+        selectSixtyHertzDisplayMode();
+
         // Configure AdrenoTools Turnip / System GPU Driver
         initDriverConfiguration();
 
@@ -131,21 +140,34 @@ public class MainActivity extends SDLActivity {
         String hookLibDir = getApplicationInfo().nativeLibraryDir;
 
         File driverFile = new File(customDriverDir, driverName);
-        if (!driverFile.exists() && customDriverDir.exists()) {
-            File[] files = customDriverDir.listFiles((dir, name) -> name.endsWith(".so"));
-            if (files != null && files.length > 0) {
-                driverName = files[0].getName();
-                driverFile = files[0];
+        if ((!driverFile.exists() || (GameConfigManager.isA6xxCompatEnabled(this) && driverName.contains("07"))) && customDriverDir.exists()) {
+            String bestDriver = GameConfigManager.resolveBestDriverFileName(this, customDriverDir, null);
+            if (bestDriver != null) {
+                driverName = bestDriver;
+                driverFile = new File(customDriverDir, driverName);
                 prefs.edit().putString(GameConfigManager.PREF_DRIVER_NAME, driverName).apply();
             }
         }
 
         boolean disableDebug = GameConfigManager.isDisableDebug(this);
+        boolean a6xxCompat = GameConfigManager.isA6xxCompatEnabled(this);
         boolean hasCustomDriver = driverFile.exists();
+
+        if (a6xxCompat) {
+            try {
+                android.system.Os.setenv("TU_DEBUG", "sysmem,nolrz,noubwc", true);
+                android.system.Os.setenv("MESA_VK_WSI_FORCE_BGRA8_UNORM_FIRST", "0", true);
+                android.system.Os.setenv("WRAPPER_BLIT", "1", true);
+                Log.i(TAG, "Early Os.setenv applied: TU_DEBUG=sysmem,nolrz,noubwc, WRAPPER_BLIT=1");
+            } catch (Throwable t) {
+                Log.w(TAG, "Failed to apply Os.setenv: " + t.getMessage());
+            }
+        }
+
         if (useTurnip && hasCustomDriver) {
-            Log.i(TAG, "Configuring AdrenoTools Turnip driver: dir=" + customDriverDir.getAbsolutePath() + ", name=" + driverName);
+            Log.i(TAG, "Configuring AdrenoTools Turnip driver: dir=" + customDriverDir.getAbsolutePath() + ", name=" + driverName + ", a6xxCompat=" + a6xxCompat);
             GameConfigManager.markTurnipLaunchInProgress(this, true);
-            nativeSetDriverConfig(customDriverDir.getAbsolutePath(), driverName, hookLibDir, true, turbo, disableDebug);
+            nativeSetDriverConfig(customDriverDir.getAbsolutePath(), driverName, hookLibDir, true, turbo, disableDebug, a6xxCompat);
 
             // Reset the crash recovery flag once the activity is running and past Vulkan initialization,
             // so subsequent normal launches don't falsely believe Turnip crashed.
@@ -161,7 +183,7 @@ public class MainActivity extends SDLActivity {
         } else {
             Log.i(TAG, "Configuring System Vulkan driver");
             GameConfigManager.markTurnipLaunchInProgress(this, false);
-            nativeSetDriverConfig("", "", hookLibDir, false, false, disableDebug);
+            nativeSetDriverConfig("", "", hookLibDir, false, false, disableDebug, false);
         }
 
         // Apply graphics, upscaler, and Vulkan settings
@@ -172,11 +194,12 @@ public class MainActivity extends SDLActivity {
         boolean asyncShaders = GameConfigManager.isAsyncShadersEnabled(this);
         int pipelineThreads = GameConfigManager.getPipelineThreadsValue(this);
         int presentMode = GameConfigManager.getVulkanPresentModeIdx(this);
+        int anisotropic = GameConfigManager.getAnisotropicValue(this);
 
-        Log.i(TAG, String.format("Applying graphics config: resScale=%d, vsync=%b, effect=%s, asyncShaders=%b, threads=%d, presentMode=%d",
-            resScale, vsync, presentEffect, asyncShaders, pipelineThreads, presentMode));
+        Log.i(TAG, String.format("Applying graphics config: resScale=%d, vsync=%b, effect=%s, asyncShaders=%b, threads=%d, presentMode=%d, aniso=%d",
+            resScale, vsync, presentEffect, asyncShaders, pipelineThreads, presentMode, anisotropic));
 
-        nativeSetGraphicsConfig(resScale, vsync, presentEffect, asyncShaders, pipelineThreads, presentMode);
+        nativeSetGraphicsConfig(resScale, vsync, presentEffect, asyncShaders, pipelineThreads, presentMode, anisotropic);
     }
 
 
@@ -219,6 +242,54 @@ public class MainActivity extends SDLActivity {
             }
         } catch (Throwable t) {
             Log.w(TAG, "applyImmersiveStickyMode failed gracefully: " + t.getMessage());
+        }
+    }
+
+    /**
+     * Pin the panel refresh rate to ~60 Hz.
+     * The Vulkan swapchain runs in FIFO mode. On 90Hz, 120Hz, or 144Hz panels,
+     * a 60 FPS guest engine experiences cadence mismatch (alternating 1 and 2 refresh
+     * intervals, e.g. 8.3ms vs 16.6ms), perceived as micro-stutter/judder.
+     * Selecting a 60.0 Hz display mode gives every frame a uniform 16.6ms refresh interval.
+     */
+    private void selectSixtyHertzDisplayMode() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
+        try {
+            Display display;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                display = getDisplay();
+            } else {
+                @SuppressWarnings("deprecation")
+                Display d = getWindowManager().getDefaultDisplay();
+                display = d;
+            }
+            if (display == null) return;
+
+            Display.Mode current = display.getMode();
+            if (current == null) return;
+
+            Display.Mode[] modes = display.getSupportedModes();
+            if (modes == null) return;
+
+            Display.Mode bestMode = null;
+            for (Display.Mode mode : modes) {
+                if (mode.getPhysicalWidth() == current.getPhysicalWidth()
+                        && mode.getPhysicalHeight() == current.getPhysicalHeight()
+                        && mode.getRefreshRate() >= 59.0f && mode.getRefreshRate() <= 61.0f) {
+                    if (bestMode == null || mode.getRefreshRate() < bestMode.getRefreshRate()) {
+                        bestMode = mode;
+                    }
+                }
+            }
+
+            if (bestMode != null) {
+                WindowManager.LayoutParams params = getWindow().getAttributes();
+                params.preferredDisplayModeId = bestMode.getModeId();
+                getWindow().setAttributes(params);
+                Log.i(TAG, "Display pinned to 60 Hz mode: id=" + bestMode.getModeId() + " (" + bestMode.getRefreshRate() + " Hz)");
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "selectSixtyHertzDisplayMode failed gracefully: " + t.getMessage());
         }
     }
 

@@ -23,6 +23,7 @@ public class SettingsActivity extends AppCompatActivity {
     private SwitchCompat switchUseTurnip;
     private SwitchCompat switchTurboMode;
     private SwitchCompat switchDisableDebug;
+    private SwitchCompat switchA6xxCompat;
     private SwitchCompat switchShowFps;
     private Spinner spinnerFpsOpacity;
     private TextView tvDriverStatus;
@@ -37,6 +38,7 @@ public class SettingsActivity extends AppCompatActivity {
     private Spinner spinnerResScale;
     private SwitchCompat switchVsync;
     private Spinner spinnerPresentEffect;
+    private Spinner spinnerAnisotropic;
     private Spinner spinnerVulkanPresentMode;
     private SwitchCompat switchAsyncShaders;
     private Spinner spinnerShaderThreads;
@@ -45,6 +47,8 @@ public class SettingsActivity extends AppCompatActivity {
     private TextView tvShaderCacheSize;
     private Button btnClearShaderCache;
     private Button btnApplyQuickSettings;
+    private Button btnRestartApp;
+    private Button btnCheckUpdates;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +74,7 @@ public class SettingsActivity extends AppCompatActivity {
         switchUseTurnip = findViewById(R.id.switch_use_turnip);
         switchTurboMode = findViewById(R.id.switch_turbo_mode);
         switchDisableDebug = findViewById(R.id.switch_disable_debug);
+        switchA6xxCompat = findViewById(R.id.switch_a6xx_compat);
         switchShowFps = findViewById(R.id.switch_show_fps);
         spinnerFpsOpacity = findViewById(R.id.spinner_fps_opacity);
         tvDriverStatus = findViewById(R.id.tv_settings_driver_name);
@@ -82,6 +87,7 @@ public class SettingsActivity extends AppCompatActivity {
         spinnerResScale = findViewById(R.id.spinner_resolution_scale);
         switchVsync = findViewById(R.id.switch_vsync);
         spinnerPresentEffect = findViewById(R.id.spinner_present_effect);
+        spinnerAnisotropic = findViewById(R.id.spinner_anisotropic);
         spinnerVulkanPresentMode = findViewById(R.id.spinner_vulkan_present_mode);
         switchAsyncShaders = findViewById(R.id.switch_async_shaders);
         spinnerShaderThreads = findViewById(R.id.spinner_shader_threads);
@@ -89,12 +95,27 @@ public class SettingsActivity extends AppCompatActivity {
         tvShaderCacheSize = findViewById(R.id.tv_shader_cache_size);
         btnClearShaderCache = findViewById(R.id.btn_clear_shader_cache);
         btnApplyQuickSettings = findViewById(R.id.btn_apply_quick_settings);
+        btnRestartApp = findViewById(R.id.btn_restart_app);
+        btnCheckUpdates = findViewById(R.id.btn_check_updates);
+
+        if (btnCheckUpdates != null) {
+            btnCheckUpdates.setOnClickListener(v -> AppUpdater.checkAndPromptUpdate(this, true));
+        }
+
+        if (btnRestartApp != null) {
+            btnRestartApp.setOnClickListener(v -> {
+                GameConfigManager.saveTomlConfig(this);
+                Toast.makeText(this, "Reiniciando jogo em processo limpo...", Toast.LENGTH_SHORT).show();
+                RestartActivity.restart(this);
+            });
+        }
     }
 
     private void setupDriverSection() {
         boolean useTurnip = GameConfigManager.isTurnipEnabled(this);
         boolean turbo = GameConfigManager.isTurboEnabled(this);
         boolean disableDebug = GameConfigManager.isDisableDebug(this);
+        boolean a6xxCompat = GameConfigManager.isA6xxCompatEnabled(this);
 
         if (switchUseTurnip != null) {
             switchUseTurnip.setChecked(useTurnip);
@@ -120,6 +141,18 @@ public class SettingsActivity extends AppCompatActivity {
             switchDisableDebug.setChecked(disableDebug);
             switchDisableDebug.setOnCheckedChangeListener((bv, isChecked) -> {
                 GameConfigManager.setDisableDebug(this, isChecked);
+            });
+        }
+
+        if (switchA6xxCompat != null) {
+            switchA6xxCompat.setChecked(a6xxCompat);
+            switchA6xxCompat.setOnCheckedChangeListener((bv, isChecked) -> {
+                GameConfigManager.setA6xxCompatEnabled(this, isChecked);
+                updateDriverStatusText();
+                String msg = isChecked
+                    ? "Compatibilidade A6xx (noubwc) ATIVADA!"
+                    : "Compatibilidade A6xx desativada.";
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
             });
         }
 
@@ -299,6 +332,31 @@ public class SettingsActivity extends AppCompatActivity {
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                     GameConfigManager.setPresentEffectIdx(SettingsActivity.this, position);
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {}
+            });
+        }
+
+        // Anisotropic Texture Filtering Spinner
+        if (spinnerAnisotropic != null) {
+            String[] anisoLevels = new String[] {
+                "Desativado (0x - Mais FPS)",
+                "Baixo (2x - Equilibrado)",
+                "Médio (4x)",
+                "Alto (16x - Máxima Nitidez)",
+                "Padrão do Jogo (Sem Override)"
+            };
+            ArrayAdapter<String> anisoAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, anisoLevels);
+            spinnerAnisotropic.setAdapter(anisoAdapter);
+            int savedAniso = GameConfigManager.getAnisotropicIdx(this);
+            spinnerAnisotropic.setSelection(savedAniso);
+
+            spinnerAnisotropic.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    GameConfigManager.setAnisotropicIdx(SettingsActivity.this, position);
                 }
 
                 @Override

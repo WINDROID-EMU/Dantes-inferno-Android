@@ -24,7 +24,8 @@ android {
                 arguments(
                     "-DANDROID_STL=c++_shared",
                     "-DCMAKE_BUILD_TYPE=Release",
-                    "-DREXSDK_DIR=${project.rootDir}/../thirdparty/rexglue-sdk"
+                    "-DREXSDK_DIR=${project.rootDir}/../thirdparty/rexglue-sdk",
+                    "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384"
                 )
                 targets(
                     "dantes_inferno",

@@ -47,8 +47,12 @@ class Fence {
 
   void Signal() {
     std::unique_lock<std::mutex> lock(mutex_);
-    signal_state_.store(signal_state_.load() | SIGMASK_, std::memory_order_release);
-    cond_.notify_all();
+    auto prev = signal_state_.load(std::memory_order_relaxed);
+    signal_state_.store(prev | SIGMASK_, std::memory_order_release);
+    // Only invoke kernel futex / notify_all if there are threads actually waiting
+    if (prev & ~SIGMASK_) {
+      cond_.notify_all();
+    }
   }
 
   // Wait for the Fence to be signaled. Clears the signal on return.
@@ -106,7 +110,9 @@ void set_current_thread_id(uint32_t id);
 void set_current_thread_name(const std::string_view name);
 
 // Yields the current thread to the scheduler. Maybe.
-void MaybeYield();
+inline void MaybeYield() {
+  rex::platform::CpuYield();
+}
 
 // Memory barrier (request - may be ignored).
 void SyncMemory();

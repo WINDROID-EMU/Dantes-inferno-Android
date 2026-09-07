@@ -11,6 +11,7 @@ struct DriverConfig {
   std::string hook_lib_dir;    // Path to app's nativeLibraryDir
   bool enable_turbo = true;    // Force maximum Adreno GPU clocks
   bool disable_debug = true;   // Disable all debug logging
+  bool a6xx_compat = false;    // Disable UBWC and apply Adreno 6xx workarounds
 };
 
 // Sets driver configuration (called via JNI from MainActivity)

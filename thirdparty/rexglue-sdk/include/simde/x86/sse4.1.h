@@ -1159,8 +1159,12 @@ simde_mm_dp_ps (simde__m128 a, simde__m128 b, const int imm8)
       case 0xff:
         r_.neon_f32 = vdupq_n_f32(vaddvq_f32(r_.neon_f32));
         break;
+      case 0xef:
+        r_.neon_f32 = vsetq_lane_f32(0.0f, r_.neon_f32, 0);
+        r_.neon_f32 = vdupq_n_f32(vaddvq_f32(r_.neon_f32));
+        break;
       case 0x7f:
-        r_.neon_f32 = vsetq_lane_f32(0, r_.neon_f32, 3);
+        r_.neon_f32 = vsetq_lane_f32(0.0f, r_.neon_f32, 3);
         r_.neon_f32 = vdupq_n_f32(vaddvq_f32(r_.neon_f32));
         break;
       default:

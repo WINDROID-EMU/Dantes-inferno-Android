@@ -118,29 +118,45 @@ inline uint8_t VectorShiftTableR[] = {
 
 // Unsigned 32-bit saturating add
 inline simde__m128i simde_mm_adds_epu32(simde__m128i a, simde__m128i b) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  return (simde__m128i)vqaddq_u32((uint32x4_t)a, (uint32x4_t)b);
+#else
   return simde_mm_add_epi32(
       a, simde_mm_min_epu32(simde_mm_xor_si128(a, simde_mm_cmpeq_epi32(a, a)), b));
+#endif
 }
 
-// Signed 8-bit average (rounds towards zero)
+// Signed 8-bit average (rounds towards zero / floor)
 inline simde__m128i simde_mm_avg_epi8(simde__m128i a, simde__m128i b) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  return (simde__m128i)vrhaddq_s8((int8x16_t)a, (int8x16_t)b);
+#else
   simde__m128i c = simde_mm_set1_epi8(char(128));
   return simde_mm_xor_si128(c,
                             simde_mm_avg_epu8(simde_mm_xor_si128(c, a), simde_mm_xor_si128(c, b)));
+#endif
 }
 
 // Signed 16-bit average
 inline simde__m128i simde_mm_avg_epi16(simde__m128i a, simde__m128i b) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  return (simde__m128i)vrhaddq_s16((int16x8_t)a, (int16x8_t)b);
+#else
   simde__m128i c = simde_mm_set1_epi16(short(32768));
   return simde_mm_xor_si128(c,
                             simde_mm_avg_epu16(simde_mm_xor_si128(c, a), simde_mm_xor_si128(c, b)));
+#endif
 }
 
 // Signed 32-bit average
 inline simde__m128i simde_mm_avg_epi32(simde__m128i a, simde__m128i b) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  return (simde__m128i)vrhaddq_s32((int32x4_t)a, (int32x4_t)b);
+#else
   simde__m128i sum = simde_mm_add_epi32(simde_mm_srai_epi32(a, 1), simde_mm_srai_epi32(b, 1));
   return simde_mm_add_epi32(sum,
                             simde_mm_and_si128(simde_mm_or_si128(a, b), simde_mm_set1_epi32(1)));
+#endif
 }
 
 // Convert unsigned 32-bit integers to floats
@@ -161,22 +177,43 @@ inline simde__m128 simde_mm_cvtepu32_ps_(simde__m128i src1) {
 
 // Permute bytes from two vectors based on control vector
 inline simde__m128i simde_mm_perm_epi8_(simde__m128i a, simde__m128i b, simde__m128i c) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  // ARM64 NEON: direct register table lookup without emulated pshufb/blendv
+  // In PPC AltiVec, bit 4 (0x10) of each control byte in 'c' determines source:
+  // 0 -> from 'a', 1 -> from 'b'.
+  // Bits 0..3 (0x0F) specify the byte index (inverted for little-endian host).
+  uint8x16_t vc = (uint8x16_t)c;
+  uint8x16_t idx = vsubq_u8(vdupq_n_u8(0x0F), vandq_u8(vc, vdupq_n_u8(0x0F)));
+  uint8x16_t val_a = vqtbl1q_u8((uint8x16_t)a, idx);
+  uint8x16_t val_b = vqtbl1q_u8((uint8x16_t)b, idx);
+  uint8x16_t mask = vtstq_u8(vc, vdupq_n_u8(0x10));
+  return (simde__m128i)vbslq_u8(mask, val_b, val_a);
+#else
   simde__m128i d = simde_mm_set1_epi8(0xF);
   simde__m128i e = simde_mm_sub_epi8(d, simde_mm_and_si128(c, d));
   return simde_mm_blendv_epi8(simde_mm_shuffle_epi8(a, e), simde_mm_shuffle_epi8(b, e),
                               simde_mm_slli_epi32(c, 3));
+#endif
 }
 
 // Unsigned 8-bit compare greater than
 inline simde__m128i simde_mm_cmpgt_epu8(simde__m128i a, simde__m128i b) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  return (simde__m128i)vcgtq_u8((uint8x16_t)a, (uint8x16_t)b);
+#else
   simde__m128i c = simde_mm_set1_epi8(char(128));
   return simde_mm_cmpgt_epi8(simde_mm_xor_si128(a, c), simde_mm_xor_si128(b, c));
+#endif
 }
 
 // Unsigned 16-bit compare greater than
 inline simde__m128i simde_mm_cmpgt_epu16(simde__m128i a, simde__m128i b) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  return (simde__m128i)vcgtq_u16((uint16x8_t)a, (uint16x8_t)b);
+#else
   simde__m128i c = simde_mm_set1_epi16(short(32768));
   return simde_mm_cmpgt_epi16(simde_mm_xor_si128(a, c), simde_mm_xor_si128(b, c));
+#endif
 }
 
 // Vector Convert To Signed Fixed-Point Word Saturate
@@ -258,33 +295,17 @@ inline simde__m128i simde_mm_vsl(simde__m128i a, simde__m128i b) {
   high_carry = simde_mm_slli_si128(high_carry, 8);
   return simde_mm_or_si128(low_shifted, high_carry);
 #elif defined(__aarch64__) || defined(_M_ARM64)
-  // ARM64 NEON implementation using vld1/vst1 for conversion
-  uint64_t vals[2];
-  uint64_t res[2] = {0, 0};
-
-  // Store simde__m128i to memory
-  simde_mm_store_si128((simde__m128i*)vals, a);
-
-  // Load as NEON vector
-  uint64x2_t va = vld1q_u64(vals);
-
-  // vshlq_u64 accepts variable shift per lane
+  // ARM64 NEON: direct register operations without stack roundtrips
+  uint64x2_t va = (uint64x2_t)a;
   int64x2_t shift_vector = vdupq_n_s64(shift);
   uint64x2_t low_shifted = vshlq_u64(va, shift_vector);
-
-  // NEON vshl uses negative counts for right shifts.
   int64x2_t rshift_vector = vdupq_n_s64(shift - 64);
   uint64x2_t high_carry = vshlq_u64(va, rshift_vector);
 
-  // Combine results
-  uint64x2_t result_vec = vdupq_n_u64(0);
-  result_vec = vsetq_lane_u64(vgetq_lane_u64(low_shifted, 0), result_vec, 0);
+  uint64x2_t result_vec = vsetq_lane_u64(vgetq_lane_u64(low_shifted, 0), low_shifted, 0);
   result_vec =
       vsetq_lane_u64(vgetq_lane_u64(low_shifted, 1) | vgetq_lane_u64(high_carry, 0), result_vec, 1);
-
-  // Store back to memory and reload as simde__m128i
-  vst1q_u64(res, result_vec);
-  return simde_mm_load_si128((simde__m128i*)res);
+  return (simde__m128i)result_vec;
 #else
 #error "Unsupported architecture for simde_mm_vsl (only x86_64 and ARM64 supported)"
 #endif
@@ -308,14 +329,27 @@ inline simde__m128i simde_mm_vslo(simde__m128i a, simde__m128i b) {
   memcpy(dst + shift_bytes, src, 16 - shift_bytes);
   return simde_mm_load_si128((simde__m128i*)dst);
 #elif defined(__aarch64__) || defined(_M_ARM64)
-  // ARM64 NEON implementation using memory for conversion
-  uint8_t src[16];
-  uint8_t dst[16] = {0};
-
-  simde_mm_store_si128((simde__m128i*)src, a);
-  memcpy(dst + shift_bytes, src, 16 - shift_bytes);
-
-  return simde_mm_load_si128((simde__m128i*)dst);
+  // ARM64 NEON: single-cycle EXT instruction, zero stack memory spills
+  uint8x16_t va = (uint8x16_t)a;
+  uint8x16_t zero = vdupq_n_u8(0);
+  switch (shift_bytes) {
+    case 1:  return (simde__m128i)vextq_u8(zero, va, 15);
+    case 2:  return (simde__m128i)vextq_u8(zero, va, 14);
+    case 3:  return (simde__m128i)vextq_u8(zero, va, 13);
+    case 4:  return (simde__m128i)vextq_u8(zero, va, 12);
+    case 5:  return (simde__m128i)vextq_u8(zero, va, 11);
+    case 6:  return (simde__m128i)vextq_u8(zero, va, 10);
+    case 7:  return (simde__m128i)vextq_u8(zero, va, 9);
+    case 8:  return (simde__m128i)vextq_u8(zero, va, 8);
+    case 9:  return (simde__m128i)vextq_u8(zero, va, 7);
+    case 10: return (simde__m128i)vextq_u8(zero, va, 6);
+    case 11: return (simde__m128i)vextq_u8(zero, va, 5);
+    case 12: return (simde__m128i)vextq_u8(zero, va, 4);
+    case 13: return (simde__m128i)vextq_u8(zero, va, 3);
+    case 14: return (simde__m128i)vextq_u8(zero, va, 2);
+    case 15: return (simde__m128i)vextq_u8(zero, va, 1);
+    default: return simde_mm_setzero_si128();
+  }
 #else
 #error "Unsupported architecture for simde_mm_vslo (only x86_64 and ARM64 supported)"
 #endif
@@ -339,14 +373,27 @@ inline simde__m128i simde_mm_vsro(simde__m128i a, simde__m128i b) {
   memcpy(dst, src + shift_bytes, 16 - shift_bytes);
   return simde_mm_load_si128((simde__m128i*)dst);
 #elif defined(__aarch64__) || defined(_M_ARM64)
-  // ARM64 NEON implementation using memory for conversion
-  uint8_t src[16];
-  uint8_t dst[16] = {0};
-
-  simde_mm_store_si128((simde__m128i*)src, a);
-  memcpy(dst, src + shift_bytes, 16 - shift_bytes);
-
-  return simde_mm_load_si128((simde__m128i*)dst);
+  // ARM64 NEON: single-cycle EXT instruction, zero stack memory spills
+  uint8x16_t va = (uint8x16_t)a;
+  uint8x16_t zero = vdupq_n_u8(0);
+  switch (shift_bytes) {
+    case 1:  return (simde__m128i)vextq_u8(va, zero, 1);
+    case 2:  return (simde__m128i)vextq_u8(va, zero, 2);
+    case 3:  return (simde__m128i)vextq_u8(va, zero, 3);
+    case 4:  return (simde__m128i)vextq_u8(va, zero, 4);
+    case 5:  return (simde__m128i)vextq_u8(va, zero, 5);
+    case 6:  return (simde__m128i)vextq_u8(va, zero, 6);
+    case 7:  return (simde__m128i)vextq_u8(va, zero, 7);
+    case 8:  return (simde__m128i)vextq_u8(va, zero, 8);
+    case 9:  return (simde__m128i)vextq_u8(va, zero, 9);
+    case 10: return (simde__m128i)vextq_u8(va, zero, 10);
+    case 11: return (simde__m128i)vextq_u8(va, zero, 11);
+    case 12: return (simde__m128i)vextq_u8(va, zero, 12);
+    case 13: return (simde__m128i)vextq_u8(va, zero, 13);
+    case 14: return (simde__m128i)vextq_u8(va, zero, 14);
+    case 15: return (simde__m128i)vextq_u8(va, zero, 15);
+    default: return simde_mm_setzero_si128();
+  }
 #else
 #error "Unsupported architecture for simde_mm_vsro (only x86_64 and ARM64 supported)"
 #endif
@@ -354,6 +401,10 @@ inline simde__m128i simde_mm_vsro(simde__m128i a, simde__m128i b) {
 
 // Variable 16-bit shift left: widen to 32-bit, shift, narrow back
 inline simde__m128i simde_mm_sllv_epi16(simde__m128i a, simde__m128i count) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  // ARM64 NEON has native per-lane 16-bit variable shifts
+  return (simde__m128i)vshlq_u16((uint16x8_t)a, (int16x8_t)count);
+#else
   simde__m128i zero = simde_mm_setzero_si128();
   simde__m128i a_lo = simde_mm_unpacklo_epi16(a, zero);
   simde__m128i a_hi = simde_mm_unpackhi_epi16(a, zero);
@@ -365,10 +416,15 @@ inline simde__m128i simde_mm_sllv_epi16(simde__m128i a, simde__m128i count) {
   r_lo = simde_mm_and_si128(r_lo, mask16);
   r_hi = simde_mm_and_si128(r_hi, mask16);
   return simde_mm_packus_epi32(r_lo, r_hi);
+#endif
 }
 
 // Variable 16-bit logical right shift: widen to 32-bit, shift, narrow back
 inline simde__m128i simde_mm_srlv_epi16(simde__m128i a, simde__m128i count) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  // NEON uses negative shift count for right shifts
+  return (simde__m128i)vshlq_u16((uint16x8_t)a, vnegq_s16((int16x8_t)count));
+#else
   simde__m128i zero = simde_mm_setzero_si128();
   simde__m128i a_lo = simde_mm_unpacklo_epi16(a, zero);
   simde__m128i a_hi = simde_mm_unpackhi_epi16(a, zero);
@@ -377,10 +433,15 @@ inline simde__m128i simde_mm_srlv_epi16(simde__m128i a, simde__m128i count) {
   simde__m128i r_lo = simde_mm_srlv_epi32(a_lo, s_lo);
   simde__m128i r_hi = simde_mm_srlv_epi32(a_hi, s_hi);
   return simde_mm_packus_epi32(r_lo, r_hi);
+#endif
 }
 
 // Variable 16-bit arithmetic right shift: sign-extend to 32-bit, shift, narrow back
 inline simde__m128i simde_mm_srav_epi16(simde__m128i a, simde__m128i count) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  // NEON arithmetic right shift with negative shift count
+  return (simde__m128i)vshlq_s16((int16x8_t)a, vnegq_s16((int16x8_t)count));
+#else
   simde__m128i zero = simde_mm_setzero_si128();
   // Sign-extend a: duplicate each 16-bit lane, then arithmetic shift right by 16
   simde__m128i a_lo = simde_mm_srai_epi32(simde_mm_unpacklo_epi16(a, a), 16);
@@ -390,10 +451,15 @@ inline simde__m128i simde_mm_srav_epi16(simde__m128i a, simde__m128i count) {
   simde__m128i r_lo = simde_mm_srav_epi32(a_lo, s_lo);
   simde__m128i r_hi = simde_mm_srav_epi32(a_hi, s_hi);
   return simde_mm_packs_epi32(r_lo, r_hi);
+#endif
 }
 
 // Variable 8-bit shift left: widen to 16-bit, shift, narrow back
 inline simde__m128i simde_mm_sllv_epi8(simde__m128i a, simde__m128i count) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  // ARM64 NEON has native per-lane 8-bit variable shifts
+  return (simde__m128i)vshlq_u8((uint8x16_t)a, (int8x16_t)count);
+#else
   simde__m128i zero = simde_mm_setzero_si128();
   simde__m128i a_lo = simde_mm_unpacklo_epi8(a, zero);
   simde__m128i a_hi = simde_mm_unpackhi_epi8(a, zero);
@@ -405,6 +471,7 @@ inline simde__m128i simde_mm_sllv_epi8(simde__m128i a, simde__m128i count) {
   r_lo = simde_mm_and_si128(r_lo, mask8);
   r_hi = simde_mm_and_si128(r_hi, mask8);
   return simde_mm_packus_epi16(r_lo, r_hi);
+#endif
 }
 
 }  // namespace rex::ppc

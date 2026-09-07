@@ -19,6 +19,7 @@ public class GameConfigManager {
     public static final String PREF_DRIVER_NAME = "driver_name";
     public static final String PREF_TURBO = "turbo_mode";
     public static final String PREF_DISABLE_DEBUG = "disable_debug";
+    public static final String PREF_A6XX_COMPAT = "a6xx_compat_mode";
     public static final String PREF_CUSTOM_GAME_PATH = "custom_game_path";
 
     public static final String DEFAULT_DRIVER_NAME = "vulkan.adreno.so";
@@ -31,6 +32,7 @@ public class GameConfigManager {
     public static final String PREF_RES_SCALE_IDX = "resolution_scale_idx";
     public static final String PREF_VSYNC = "vsync_enabled";
     public static final String PREF_PRESENT_EFFECT_IDX = "present_effect_idx";
+    public static final String PREF_ANISOTROPIC_IDX = "anisotropic_idx";
     public static final String PREF_VULKAN_PRESENT_MODE_IDX = "vulkan_present_mode_idx";
     public static final String PREF_ASYNC_SHADERS = "async_shaders_enabled";
     public static final String PREF_PIPELINE_THREADS_IDX = "pipeline_threads_idx";
@@ -204,6 +206,46 @@ public class GameConfigManager {
                .apply();
     }
 
+    public static boolean isAdreno6xxHardware() {
+        String hardware = android.os.Build.HARDWARE != null ? android.os.Build.HARDWARE.toLowerCase() : "";
+        String board = android.os.Build.BOARD != null ? android.os.Build.BOARD.toLowerCase() : "";
+        String device = android.os.Build.DEVICE != null ? android.os.Build.DEVICE.toLowerCase() : "";
+        String model = android.os.Build.MODEL != null ? android.os.Build.MODEL.toLowerCase() : "";
+
+        // Qualcomm Snapdragon 865/865+/870 (kona), SD855 (msmnile), SD888 (lahaina), SD778G (yupik), SD765G (lito)
+        if (hardware.contains("kona") || board.contains("kona") || device.contains("nio") ||
+            hardware.contains("lahaina") || board.contains("lahaina") ||
+            hardware.contains("msmnile") || board.contains("msmnile") ||
+            hardware.contains("yupik") || board.contains("yupik") ||
+            hardware.contains("lito") || board.contains("lito") ||
+            model.contains("g(100)") || model.contains("g100")) {
+            return true;
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            String soc = android.os.Build.SOC_MODEL != null ? android.os.Build.SOC_MODEL.toUpperCase() : "";
+            if (soc.contains("8250") || soc.contains("8150") || soc.contains("8350") || soc.contains("7325") || soc.contains("7250")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isA6xxCompatEnabled(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        if (!prefs.contains(PREF_A6XX_COMPAT)) {
+            return isAdreno6xxHardware();
+        }
+        return prefs.getBoolean(PREF_A6XX_COMPAT, false);
+    }
+
+    public static void setA6xxCompatEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit()
+               .putBoolean(PREF_A6XX_COMPAT, enabled)
+               .apply();
+    }
+
     public static String getDriverName(Context context) {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                       .getString(PREF_DRIVER_NAME, DEFAULT_DRIVER_NAME);
@@ -231,7 +273,12 @@ public class GameConfigManager {
         boolean useTurnip = isTurnipEnabled(context);
         boolean hasDriver = hasCustomDriverInstalled(context);
         if (useTurnip && hasDriver) {
-            return "Turnip AdrenoTools (" + getDriverName(context) + ") [ATIVO]";
+            String drvName = getDriverName(context);
+            String extra = isA6xxCompatEnabled(context) ? " (noubwc ativo)" : "";
+            if (drvName.contains("07") && (isAdreno6xxHardware() || isA6xxCompatEnabled(context))) {
+                extra += " ⚠️ ALERTA: Driver A7xx em GPU A6xx!";
+            }
+            return "Turnip AdrenoTools (" + drvName + ")" + extra + " [ATIVO]";
         } else if (useTurnip && !hasDriver) {
             return "Turnip ativado (Nenhum driver .zip instalado ainda)";
         } else {
@@ -291,6 +338,29 @@ public class GameConfigManager {
             case 2: return "cas";
             case 3: return "fsr";
             default: return "fxaa";
+        }
+    }
+
+    public static int getAnisotropicIdx(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getInt(PREF_ANISOTROPIC_IDX, 0); // 0 = Desativado (0x) default for performance
+    }
+
+    public static void setAnisotropicIdx(Context context, int idx) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit().putInt(PREF_ANISOTROPIC_IDX, idx).apply();
+    }
+
+    public static int getAnisotropicValue(Context context) {
+        int idx = getAnisotropicIdx(context);
+        switch (idx) {
+            case 0: return 0;  // Off / Bilinear (Maximum Performance)
+            case 1: return 2;  // 2x (Balanced)
+            case 2: return 3;  // 4x (Medium)
+            case 3: return 5;  // 16x (High Quality)
+            case 4:
+            default:
+                return -1; // Native / Game Default (-1)
         }
     }
 
@@ -391,6 +461,7 @@ public class GameConfigManager {
         int resScale = getResolutionScaleValue(context);
         boolean vsync = isVsyncEnabled(context);
         String effect = getPresentEffectString(context);
+        int aniso = getAnisotropicValue(context);
         boolean asyncShaders = isAsyncShadersEnabled(context);
         int threads = getPipelineThreadsValue(context);
         int presentMode = getVulkanPresentModeIdx(context);
@@ -400,6 +471,7 @@ public class GameConfigManager {
         sb.append("draw_resolution_scale_y = ").append(resScale).append("\n");
         sb.append("vsync = ").append(vsync ? "true" : "false").append("\n");
         sb.append("swap_post_effect = \"").append(effect).append("\"\n");
+        sb.append("anisotropic_override = ").append(aniso).append("\n");
         sb.append("async_shader_compilation = ").append(asyncShaders ? "true" : "false").append("\n");
         sb.append("vulkan_pipeline_creation_threads = ").append(threads).append("\n");
         sb.append("audio_maxqframes = 128\n");
@@ -493,12 +565,7 @@ public class GameConfigManager {
             }
         }
 
-        if (resolvedLibraryName == null) {
-            File[] files = customDir.listFiles((dir, name) -> name.endsWith(".so"));
-            if (files != null && files.length > 0) {
-                resolvedLibraryName = files[0].getName();
-            }
-        }
+        resolvedLibraryName = resolveBestDriverFileName(context, customDir, resolvedLibraryName);
 
         if (resolvedLibraryName != null) {
             setTurnipEnabled(context, true);
@@ -506,5 +573,53 @@ public class GameConfigManager {
         }
 
         return resolvedLibraryName;
+    }
+
+    public static String resolveBestDriverFileName(Context context, File customDir, String metaResolvedName) {
+        File[] files = customDir.listFiles((dir, name) -> name.endsWith(".so"));
+        if (files == null || files.length == 0) return metaResolvedName;
+
+        boolean isA6xx = isA6xxCompatEnabled(context) || isAdreno6xxHardware();
+
+        File a6xxFile = null;
+        File a7xxFile = null;
+        File freedrenoFile = null;
+        File genericVulkanFile = null;
+
+        for (File f : files) {
+            String name = f.getName().toLowerCase();
+            if (name.contains("ad06") || name.contains("a6xx") || name.contains("adreno6")) {
+                a6xxFile = f;
+            } else if (name.contains("ad07") || name.contains("a7xx") || name.contains("adreno7")) {
+                a7xxFile = f;
+            } else if (name.contains("freedreno") || name.contains("turnip") || name.contains("purple")) {
+                freedrenoFile = f;
+            } else if (name.equals("vulkan.adreno.so")) {
+                genericVulkanFile = f;
+            }
+        }
+
+        if (isA6xx && a6xxFile != null) {
+            Log.i(TAG, "Driver auto-selector: Selected Adreno 6xx driver: " + a6xxFile.getName());
+            return a6xxFile.getName();
+        } else if (!isA6xx && a7xxFile != null) {
+            Log.i(TAG, "Driver auto-selector: Selected Adreno 7xx driver: " + a7xxFile.getName());
+            return a7xxFile.getName();
+        }
+
+        if (metaResolvedName != null) {
+            File metaFile = new File(customDir, metaResolvedName);
+            if (metaFile.exists()) {
+                if (isA6xx && metaResolvedName.contains("07") && a6xxFile != null) {
+                    Log.i(TAG, "Driver auto-selector: Overriding meta.json (" + metaResolvedName + ") with A6xx driver: " + a6xxFile.getName());
+                    return a6xxFile.getName();
+                }
+                return metaResolvedName;
+            }
+        }
+
+        if (freedrenoFile != null) return freedrenoFile.getName();
+        if (genericVulkanFile != null) return genericVulkanFile.getName();
+        return files[0].getName();
     }
 }

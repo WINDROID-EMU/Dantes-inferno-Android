@@ -77,7 +77,8 @@ static int (*g_real_pthread_detach)(pthread_t) = nullptr;
 static bool IsPointerMapped(const void* ptr) {
   uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
   if (addr < 0x10000) return false;
-  uintptr_t page = addr & ~static_cast<uintptr_t>(4095);
+  uintptr_t page_mask = sysconf(_SC_PAGESIZE) - 1;
+  uintptr_t page = addr & ~page_mask;
   unsigned char vec = 0;
   return mincore(reinterpret_cast<void*>(page), 1, &vec) == 0;
 }

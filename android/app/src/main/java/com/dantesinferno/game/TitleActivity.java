@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import android.provider.Settings;
 import android.util.Log;
@@ -77,6 +78,7 @@ public class TitleActivity extends AppCompatActivity {
         hideSystemUi();
         checkStoragePermissions();
         initViews();
+        AppUpdater.checkAndPromptUpdate(this, false);
     }
 
     @Override
@@ -279,7 +281,7 @@ public class TitleActivity extends AppCompatActivity {
                 }
 
                 // If file is directly on disk
-                if ("file".equalsIgnoreCase(uri.getScheme())) {
+                if ("file".equalsIgnoreCase(uri.getScheme()) && uri.getPath() != null) {
                     String path = uri.getPath();
                     runOnUiThread(() -> {
                         if (layoutLoading != null) layoutLoading.setVisibility(View.GONE);
@@ -288,7 +290,30 @@ public class TitleActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Copy to cache dir
+                // Instant ISO attachment via file descriptor detachment:
+                // detachFd() hands the open Linux file descriptor to the process without closing it.
+                // It remains accessible to the native engine via /proc/self/fd/<fd>, avoiding
+                // copying 7.8 GB of data to disk and saving minutes of setup time and storage.
+                try {
+                    ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "r");
+                    if (pfd != null) {
+                        int fd = pfd.detachFd();
+                        if (fd >= 0) {
+                            final String procFdPath = "/proc/self/fd/" + fd;
+                            Log.i(TAG, "Detached ISO file descriptor: " + fd + " -> " + procFdPath);
+                            runOnUiThread(() -> {
+                                if (layoutLoading != null) layoutLoading.setVisibility(View.GONE);
+                                Toast.makeText(this, "ISO vinculada instantaneamente via descritor de arquivo!", Toast.LENGTH_SHORT).show();
+                                launchGame(procFdPath);
+                            });
+                            return;
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "Unable to detach file descriptor for URI: " + e.getMessage() + "; falling back to cache copy");
+                }
+
+                // Fallback: Copy to cache dir
                 File cacheTarget = new File(getCacheDir(), fileName);
                 Log.i(TAG, "Copying ISO content URI to cache: " + cacheTarget.getAbsolutePath());
 

@@ -17,6 +17,10 @@
 #include <rex/math.h>
 #include <rex/platform.h>
 
+#if defined(__aarch64__) || defined(_M_ARM64)
+#include <arm_neon.h>
+#endif
+
 namespace rex {
 
 // The first rule of vector programming is to only rely on exact positions
@@ -143,9 +147,13 @@ typedef struct alignas(16) vec128_s {
 
 static inline vec128_t vec128i(uint32_t src) {
   vec128_t v;
+#if defined(__aarch64__) || defined(_M_ARM64)
+  vst1q_u32(v.u32, vdupq_n_u32(src));
+#else
   for (auto i = 0; i < 4; ++i) {
     v.u32[i] = src;
   }
+#endif
   return v;
 }
 static inline vec128_t vec128i(uint32_t x, uint32_t y, uint32_t z, uint32_t w) {
@@ -158,9 +166,13 @@ static inline vec128_t vec128i(uint32_t x, uint32_t y, uint32_t z, uint32_t w) {
 }
 static inline vec128_t vec128q(uint64_t src) {
   vec128_t v;
+#if defined(__aarch64__) || defined(_M_ARM64)
+  vst1q_u64(v.u64, vdupq_n_u64(src));
+#else
   for (auto i = 0; i < 2; ++i) {
     v.i64[i] = src;
   }
+#endif
   return v;
 }
 static inline vec128_t vec128q(uint64_t x, uint64_t y) {
@@ -184,9 +196,13 @@ static inline vec128_t vec128d(double x, double y) {
 }
 static inline vec128_t vec128f(float src) {
   vec128_t v;
+#if defined(__aarch64__) || defined(_M_ARM64)
+  vst1q_f32(v.f32, vdupq_n_f32(src));
+#else
   for (auto i = 0; i < 4; ++i) {
     v.f32[i] = src;
   }
+#endif
   return v;
 }
 static inline vec128_t vec128f(float x, float y, float z, float w) {
@@ -199,9 +215,13 @@ static inline vec128_t vec128f(float x, float y, float z, float w) {
 }
 static inline vec128_t vec128s(uint16_t src) {
   vec128_t v;
+#if defined(__aarch64__) || defined(_M_ARM64)
+  vst1q_u16(v.u16, vdupq_n_u16(src));
+#else
   for (auto i = 0; i < 8; ++i) {
     v.u16[i] = src;
   }
+#endif
   return v;
 }
 static inline vec128_t vec128s(uint16_t x0, uint16_t x1, uint16_t y0, uint16_t y1, uint16_t z0,
@@ -219,9 +239,13 @@ static inline vec128_t vec128s(uint16_t x0, uint16_t x1, uint16_t y0, uint16_t y
 }
 static inline vec128_t vec128b(uint8_t src) {
   vec128_t v;
+#if defined(__aarch64__) || defined(_M_ARM64)
+  vst1q_u8(v.u8, vdupq_n_u8(src));
+#else
   for (auto i = 0; i < 16; ++i) {
     v.u8[i] = src;
   }
+#endif
   return v;
 }
 static inline vec128_t vec128b(uint8_t x0, uint8_t x1, uint8_t x2, uint8_t x3, uint8_t y0,

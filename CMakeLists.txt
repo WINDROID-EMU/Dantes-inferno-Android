@@ -71,6 +71,7 @@ if(ANDROID)
         android
         log
         adrenotools
+        aaudio
     )
     target_include_directories(dantes_inferno PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -144,6 +145,14 @@ if(ANDROID)
         CXX_VISIBILITY_PRESET default
         VISIBILITY_INLINES_HIDDEN FALSE
     )
+    # Android 15+ 16 KB page size alignment:
+    target_link_options(dantes_inferno PRIVATE "-Wl,-z,max-page-size=16384")
+    if(TARGET main_hook)
+        target_link_options(main_hook PRIVATE "-Wl,-z,max-page-size=16384")
+        target_link_options(hook_impl PRIVATE "-Wl,-z,max-page-size=16384")
+        target_link_options(file_redirect_hook PRIVATE "-Wl,-z,max-page-size=16384")
+        target_link_options(gsl_alloc_hook PRIVATE "-Wl,-z,max-page-size=16384")
+    endif()
 endif()
 
 target_include_directories(dantes_inferno PRIVATE

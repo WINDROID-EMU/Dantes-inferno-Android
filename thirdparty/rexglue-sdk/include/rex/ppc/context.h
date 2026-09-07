@@ -25,6 +25,10 @@
 #include <simde/x86/sse.h>
 #include <simde/x86/sse4.1.h>
 
+#if defined(__aarch64__) || defined(_M_ARM64)
+#include <arm_neon.h>
+#endif
+
 //=============================================================================
 // Pack/Unpack Constants (NORMPACKED32 - 2:10:10:10 format)
 //=============================================================================
@@ -100,6 +104,39 @@ struct CRRegister {
     eq = !un && (left == right);
   }
 
+#if defined(__aarch64__) || defined(_M_ARM64)
+  inline void setFromMask(simde__m128 mask, int imm) noexcept {
+    if (imm == 0xF) {
+      int32x4_t s = (int32x4_t)mask;
+      lt = (vmaxvq_s32(s) < 0);
+      gt = 0;
+      eq = (vminvq_s32(s) >= 0);
+      so = 0;
+    } else {
+      int m = simde_mm_movemask_ps(mask);
+      lt = m == imm;
+      gt = 0;
+      eq = m == 0;
+      so = 0;
+    }
+  }
+
+  inline void setFromMask(simde__m128i mask, int imm) noexcept {
+    if (imm == 0xFFFF) {
+      int8x16_t s = (int8x16_t)mask;
+      lt = (vmaxvq_s8(s) < 0);
+      gt = 0;
+      eq = (vminvq_s8(s) >= 0);
+      so = 0;
+    } else {
+      int m = simde_mm_movemask_epi8(mask);
+      lt = m == imm;
+      gt = 0;
+      eq = m == 0;
+      so = 0;
+    }
+  }
+#else
   inline void setFromMask(simde__m128 mask, int imm) noexcept {
     int m = simde_mm_movemask_ps(mask);
     lt = m == imm;
@@ -115,6 +152,7 @@ struct CRRegister {
     eq = m == 0;
     so = 0;
   }
+#endif
 };
 
 //=============================================================================

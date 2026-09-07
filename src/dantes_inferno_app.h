@@ -130,6 +130,7 @@ class FpsOverlayDialog : public rex::ui::ImGuiDialog {
 #include "dantes_driver.h"
 #include "dantes_iso_installer.h"
 
+
 class DantesInfernoApp : public rex::ReXApp {
  public:
   using rex::ReXApp::ReXApp;
@@ -282,12 +283,18 @@ class DantesInfernoApp : public rex::ReXApp {
 
     REXCVAR_SET(input_backend, std::string("sdl"));
 
+
 #if defined(__ANDROID__)
-    // Mobile-specific defaults & AdrenoTools Turnip driver initialization
     // Disable SDK's ImGui touch controls because we use the native Android virtual controller
     rex::cvar::SetFlagByName("show_touch_controls", "false");
     rex::cvar::SetFlagByName("show_fps_overlay", "true");
     rex::cvar::SetFlagByName("mnk_mode", "false");
+
+    // Adreno Vulkan driver stability: avoid sparse buffer residency crashes on proprietary Qualcomm drivers
+    rex::cvar::SetFlagByName("vulkan_sparse_shared_memory", "false");
+    rex::cvar::SetFlagByName("vulkan_push_constants_descriptors", "false");
+    rex::cvar::SetFlagByName("vulkan_deferred_resolve_clears", "false");
+
     dantes::driver::InitializeDriver();
     dantes::driver::LogTextureCompressionSupport();
 #else

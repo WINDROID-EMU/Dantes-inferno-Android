@@ -133,6 +133,24 @@
                         android:textColor="#8B949E"
                         android:textSize="11sp" />
 
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switch_a6xx_compat"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Compatibilidade Adreno 6xx (sysmem, nolrz)"
+                        android:textColor="#F0F6FC"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Força direct-to-system-memory e desativa GMEM tiling/UBWC (TU_DEBUG=sysmem,nolrz,noubwc). Corrige tela preta em Adreno 650/660."
+                        android:textColor="#8B949E"
+                        android:textSize="11sp" />
+
                     <!-- Current Driver Info Box -->
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -411,6 +429,31 @@
                         android:textColor="#8B949E"
                         android:textSize="10sp" />
 
+                    <!-- Anisotropic Texture Filtering -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Filtro Anisotrópico (Textura):"
+                        android:textColor="#F0F6FC"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <Spinner
+                        android:id="@+id/spinner_anisotropic"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_spinner_field" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Desativado (0x) reduz drasticamente o uso de memória e eleva os FPS no celular."
+                        android:textColor="#8B949E"
+                        android:textSize="10sp" />
+
                     <!-- Vulkan Present Mode -->
                     <TextView
                         android:layout_width="wrap_content"
@@ -530,6 +573,37 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
+                <!-- Section: Atualizações do App -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:letterSpacing="0.06"
+                    android:text="ATUALIZAÇÕES DO JOGO"
+                    android:textColor="#58A6FF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:background="@drawable/bg_card_dark"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <Button
+                        android:id="@+id/btn_check_updates"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
+                        android:background="@drawable/btn_secondary"
+                        android:text="🔄 Verificar Atualizações no GitHub..."
+                        android:textAllCaps="false"
+                        android:textColor="#58A6FF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
                 <!-- Save Button -->
                 <Button
                     android:id="@+id/btn_apply_quick_settings"
@@ -539,6 +613,19 @@
                     android:text="💾 Salvar e Aplicar Configurações"
                     android:textAllCaps="false"
                     android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <!-- Process Restart Button -->
+                <Button
+                    android:id="@+id/btn_restart_app"
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/btn_secondary"
+                    android:text="⚡ Reiniciar App (Limpeza de Processo)"
+                    android:textAllCaps="false"
+                    android:textColor="#58A6FF"
                     android:textSize="12sp"
                     android:textStyle="bold" />
 

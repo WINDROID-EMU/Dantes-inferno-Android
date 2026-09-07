@@ -153,4 +153,16 @@ inline constexpr char kPathSeparator = '\\';
 inline constexpr char kPathSeparator = '/';
 #endif  // REX_PLATFORM_WIN32
 
+inline void CpuYield() noexcept {
+#if defined(__aarch64__) || defined(_M_ARM64)
+  __asm__ __volatile__("yield" ::: "memory");
+#elif defined(__x86_64__) || defined(_M_X64)
+  #if defined(_MSC_VER)
+  _mm_pause();
+  #else
+  __builtin_ia32_pause();
+  #endif
+#endif
+}
+
 }  // namespace rex::platform

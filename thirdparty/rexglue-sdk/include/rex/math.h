@@ -128,38 +128,54 @@ constexpr uint32_t bit_count(T v) {
 
 // lzcnt - count leading zeros.
 // Returns the size of the input operand if value is zero.
-uint8_t lzcnt(uint8_t v);
-uint8_t lzcnt(uint16_t v);
-uint8_t lzcnt(uint32_t v);
-uint8_t lzcnt(uint64_t v);
+inline uint8_t lzcnt(uint8_t v) noexcept {
+  return static_cast<uint8_t>(std::countl_zero(v));
+}
+inline uint8_t lzcnt(uint16_t v) noexcept {
+  return static_cast<uint8_t>(std::countl_zero(v));
+}
+inline uint8_t lzcnt(uint32_t v) noexcept {
+  return static_cast<uint8_t>(std::countl_zero(v));
+}
+inline uint8_t lzcnt(uint64_t v) noexcept {
+  return static_cast<uint8_t>(std::countl_zero(v));
+}
 
 // tzcnt - count trailing zeros.
-uint8_t tzcnt(uint8_t v);
-uint8_t tzcnt(uint16_t v);
-uint8_t tzcnt(uint32_t v);
-uint8_t tzcnt(uint64_t v);
-inline uint8_t lzcnt(int8_t v) {
+inline uint8_t tzcnt(uint8_t v) noexcept {
+  return static_cast<uint8_t>(std::countr_zero(v));
+}
+inline uint8_t tzcnt(uint16_t v) noexcept {
+  return static_cast<uint8_t>(std::countr_zero(v));
+}
+inline uint8_t tzcnt(uint32_t v) noexcept {
+  return static_cast<uint8_t>(std::countr_zero(v));
+}
+inline uint8_t tzcnt(uint64_t v) noexcept {
+  return static_cast<uint8_t>(std::countr_zero(v));
+}
+inline uint8_t lzcnt(int8_t v) noexcept {
   return lzcnt(static_cast<uint8_t>(v));
 }
-inline uint8_t lzcnt(int16_t v) {
+inline uint8_t lzcnt(int16_t v) noexcept {
   return lzcnt(static_cast<uint16_t>(v));
 }
-inline uint8_t lzcnt(int32_t v) {
+inline uint8_t lzcnt(int32_t v) noexcept {
   return lzcnt(static_cast<uint32_t>(v));
 }
-inline uint8_t lzcnt(int64_t v) {
+inline uint8_t lzcnt(int64_t v) noexcept {
   return lzcnt(static_cast<uint64_t>(v));
 }
-inline uint8_t tzcnt(int8_t v) {
+inline uint8_t tzcnt(int8_t v) noexcept {
   return tzcnt(static_cast<uint8_t>(v));
 }
-inline uint8_t tzcnt(int16_t v) {
+inline uint8_t tzcnt(int16_t v) noexcept {
   return tzcnt(static_cast<uint16_t>(v));
 }
-inline uint8_t tzcnt(int32_t v) {
+inline uint8_t tzcnt(int32_t v) noexcept {
   return tzcnt(static_cast<uint32_t>(v));
 }
-inline uint8_t tzcnt(int64_t v) {
+inline uint8_t tzcnt(int64_t v) noexcept {
   return tzcnt(static_cast<uint64_t>(v));
 }
 
@@ -167,12 +183,20 @@ inline uint8_t tzcnt(int64_t v) {
 // Search the value from least significant bit (LSB) to the most significant bit
 // (MSB) for a set bit (1).
 // Returns false if no bits are set and the output index is invalid.
-bool bit_scan_forward(uint32_t v, uint32_t* out_first_set_index);
-bool bit_scan_forward(uint64_t v, uint32_t* out_first_set_index);
-inline bool bit_scan_forward(int32_t v, uint32_t* out_first_set_index) {
+inline bool bit_scan_forward(uint32_t v, uint32_t* out_first_set_index) noexcept {
+  if (v == 0) return false;
+  *out_first_set_index = static_cast<uint32_t>(std::countr_zero(v));
+  return true;
+}
+inline bool bit_scan_forward(uint64_t v, uint32_t* out_first_set_index) noexcept {
+  if (v == 0) return false;
+  *out_first_set_index = static_cast<uint32_t>(std::countr_zero(v));
+  return true;
+}
+inline bool bit_scan_forward(int32_t v, uint32_t* out_first_set_index) noexcept {
   return bit_scan_forward(static_cast<uint32_t>(v), out_first_set_index);
 }
-inline bool bit_scan_forward(int64_t v, uint32_t* out_first_set_index) {
+inline bool bit_scan_forward(int64_t v, uint32_t* out_first_set_index) noexcept {
   return bit_scan_forward(static_cast<uint64_t>(v), out_first_set_index);
 }
 
@@ -186,8 +210,9 @@ inline T log2_ceil(T v) {
 }
 
 template <typename T>
-inline T rotate_left(T v, uint8_t sh) {
-  return (T(v) << sh) | (T(v) >> ((sizeof(T) * 8) - sh));
+inline T rotate_left(T v, uint8_t sh) noexcept {
+  using U = std::make_unsigned_t<T>;
+  return static_cast<T>(std::rotl(static_cast<U>(v), static_cast<int>(sh)));
 }
 
 #if REX_ARCH_AMD64

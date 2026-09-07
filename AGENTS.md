@@ -218,6 +218,16 @@ implemented in pure Python.
 - [x] ARM64 CPU Emulation performance optimization:
       - `ignore_thread_affinities = true` & `ignore_thread_priorities = true`: unpinned guest threads from host cores 0..3 (LITTLE low-power A510 cores) to unleash full power of Big (Cortex-A710) and Prime (Cortex-X2) cores on Snapdragon SoCs.
       - Native ARM64 NEON vector conversions (`vmaxq_f32`, `vcvtq_u32_f32`, `vcvtq_s32_f32`, `vcvtq_f32_u32`) replacing slow simulated multi-step conversions in `thirdparty/rexglue-sdk/include/rex/ppc/intrinsics.h`.
+      - ReXGlue SDK AltiVec NEON engine acceleration (`thirdparty/rexglue-sdk/include/rex/ppc/intrinsics.h`):
+        * `simde_mm_perm_epi8_` (PPC `vperm`): eliminated emulated `pshufb`/`blendv`/`slli` in favor of direct NEON 2-vector register table lookup (`vqtbl1q_u8` + `vtstq_u8` + `vbslq_u8`).
+        * `simde_mm_adds_epu32`: single-cycle hardware `vqaddq_u32` (UQADD) replacing 4 emulated steps.
+        * `simde_mm_cmpgt_epu8` & `simde_mm_cmpgt_epu16`: hardware unsigned compares `vcgtq_u8` and `vcgtq_u16` (UCMGT) eliminating sign-bit bias XOR operations.
+        * `simde_mm_avg_*`: native hardware rounding halving adds (`vrhaddq_s8`, `vrhaddq_s16`, `vrhaddq_s32`).
+        * `simde_mm_vslo` & `simde_mm_vsro`: zero-memory-copy register octet shifts using `vextq_u8`, eliminating stack memory spills and `memcpy`.
+        * `simde_mm_vsl`: eliminated stack roundtrip memory stores and reloads with direct register `vshlq_u64`.
+        * `simde_mm_s*v_epi*`: native per-lane variable shifts `vshlq_u16`, `vshlq_s16`, `vshlq_u8` replacing multi-step unpack/shift/pack sequences.
+        * `vec128.h`: replaced scalar broadcast initialization loops (`vec128i`, `vec128q`, `vec128f`, `vec128s`, `vec128b`) with native hardware `vdupq_n_*` instructions.
+        * `thread.h`: optimized `Fence::Signal()` with wait-count check to bypass redundant `cond_.notify_all()` kernel futex syscalls when no threads are waiting.
       - Clang compiler optimization flags `-O3 -fomit-frame-pointer -fno-stack-protector -ffp-contract=fast -fvectorize` removing overhead across 20,000+ recompiled guest functions.
       - Fixed Turnip crash recovery false-positive in `MainActivity.java` so high-performance Mesa driver remains active.
 - [x] In-game real-time FPS & Frametime (ms) HUD overlay with toggle in Settings, color-coded performance indicators (green/yellow/red), and isolated alpha/visibility.
@@ -226,8 +236,35 @@ implemented in pure Python.
 - [x] Enhanced audio underrun prevention: expanded SDL audio device sample buffer to 4096 frames (~85ms safety buffer) and `audio_maxqframes=256`.
 - [x] Prebuilt release APK packaged at `apk/dantes_inferno_arm64.apk`
 - [x] Automated GitHub Actions CI/CD workflow (`.github/workflows/android-release.yml`): builds ARM64 release APK and automatically publishes GitHub Releases on tag, push to main, or workflow dispatch.
+- [x] Qualcomm Adreno Vulkan crash fix: disabled `vulkan_sparse_shared_memory`, `vulkan_push_constants_descriptors`, and `vulkan_deferred_resolve_clears` on Android to eliminate fatal driver aborts on Adreno 730/740/830.
+- [x] 16 KB Page Size support (Android 15+): added `-Wl,-z,max-page-size=16384` linker flags across CMake targets and Gradle build script with automated ELF alignment CI verification.
+- [x] In-app GitHub release updater (`AppUpdater`): asynchronous update checking against GitHub Releases API, background progress download, and direct APK installation via `FileProvider`.
+- [x] Instant Zero-Copy ISO attachment: using `detachFd()` and `/proc/self/fd/<fd>` in `TitleActivity.java`, eliminating the 7.8 GB storage copy and allowing instantaneous game launching/extraction.
+- [x] 60 Hz Display Mode locking & ALLM: pinned display refresh rate to 60.0 Hz via `selectSixtyHertzDisplayMode()` to eliminate cadence judder on 90Hz/120Hz/144Hz displays, plus minimal post-processing (ALLM / Game Mode).
+- [x] Isolated Process Restart (`RestartActivity`): clean out-of-process relaunch (`android:process=":restart"`) ensuring complete termination of Vulkan/AdrenoTools driver state when switching graphics configurations.
+- [x] Compositor-level Performance Benchmark (`tools/bench.sh`): SurfaceFlinger frame present interval analysis, frametime p50/p95/p99, CPU %, PSS memory, and thermal state monitoring over ADB.
+- [x] Native Android AAudio Integration via SDL3:
+      - Configured SDL3 to use Android's native AAudio backend (`SDL_HINT_AUDIO_DRIVER="AAudio"`) with `AAUDIO_USAGE_GAME` / `AAUDIO_CONTENT_TYPE_GAME` DSP routing (`SDL_HINT_AUDIO_DEVICE_STREAM_ROLE="Game"`).
+      - Preserves Android Java audio focus (`AUDIOFOCUS_GAIN`), audio device routing, and lifecycle state management.
+      - Integrated with SDK `SDLAudioDriver`'s producer-consumer semaphore pacing and 4096-frame (~85ms) underrun protection buffer.
+- [x] ARM64 Architecture Overhead & Thermal Wear Relief (`thirdparty/rexglue-sdk/include/rex`):
+      - `simde_mm_dp_ps` specialization for mask `0xEF` (PPC `vmsum3fp128`): eliminated stack memory arrays, writes, and reload latency across 1,958 3D vector functions in favor of 2-instruction pure NEON register dot products (`vsetq_lane_f32` + `vdupq_n_f32(vaddvq_f32)`).
+      - `CRRegister::setFromMask`: replaced slow emulated `simde_mm_movemask_ps` (~12 instructions) with single-cycle native ARM64 vector reduction instructions (`vmaxvq_s32` / `vminvq_s32`) on critical PPC AltiVec branching paths.
+      - Hardware `YIELD` instruction (`rex::platform::CpuYield()` / `rex::thread::MaybeYield()`): deschedules CPU speculative execution during spinlocks, thread waits, and sync points to prevent runaway thermal throttling on ARM64 big/prime cores.
+      - Inlined bit manipulation (`math.h`): inlined `lzcnt`, `tzcnt`, `bit_scan_forward`, and `rotate_left` using standard C++20 `<bit>` (`std::countl_zero`, `std::countr_zero`, `std::rotl`) mapping directly to native `CLZ` and `ROR` hardware instructions.
+      - 64-bit register safety in `FPSCRPlatform::setcsr` (`msr fpcr`): ensured strict 64-bit register allocation conforming to AArch64 ABI.
+- [x] Ultrawide projection hook (ported from upstream v0.5.0 / commits ab67ab0e + d6187367):
+      - `UltrawideAspectHook` precision fix: changed from `f29.f32` to `f29.f64` — reading the
+        lower 32 bits of a PPC double register as float produced denormal values, silently
+        preventing the hook from ever firing (upstream bug confirmed). Now correctly uses 64-bit.
+      - New `UltrawideXScaleHook(f12)` at `0x8251DD38`: scales the X column of the projection
+        matrix by `kNativeAspect / target_aspect`, preventing horizontal geometry distortion on
+        non-16:9 displays. Registered in `dantes_inferno_manifest.toml` as second `[[midasm_hook]]`.
+      - `kNativeAspect = 1.7777778` constant for consistent 16:9 baseline across both hooks.
+      - Upstream v0.5.0 Native Vulkan Renderer (DiligentCore + D3D12 interop) analysed and
+        confirmed incompatible with Android: requires `VK_KHR_external_memory_win32` and
+        `ID3D12Resource::CreateSharedHandle` — Win32-only APIs with no Android equivalent.
+        Android port already uses native Vulkan (Turnip/Mesa) end-to-end without D3D12.
 - [ ] DLC auto-install hook in OnPostSetup
-
-- [ ] Ultrawide projection hook (requires RE of generated code)
 - [ ] Button glyph replacement (requires RE of generated code)
 

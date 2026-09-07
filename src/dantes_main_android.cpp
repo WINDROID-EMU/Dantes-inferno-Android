@@ -4,9 +4,11 @@
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <rex/cvar.h>
@@ -40,6 +42,7 @@ struct GraphicsConfig {
   bool async_shaders = true;
   int pipeline_threads = -1;
   int present_mode = 0;
+  int anisotropic = 0; // 0 = off by default on mobile
   bool configured = false;
 };
 static GraphicsConfig g_graphics_config;
@@ -51,6 +54,7 @@ void ApplyGraphicsConfig() {
   rex::cvar::SetFlagByName("draw_resolution_scale_y", std::to_string(g_graphics_config.res_scale));
   rex::cvar::SetFlagByName("vsync", g_graphics_config.vsync ? "true" : "false");
   rex::cvar::SetFlagByName("swap_post_effect", g_graphics_config.present_effect);
+  rex::cvar::SetFlagByName("anisotropic_override", std::to_string(g_graphics_config.anisotropic));
   rex::cvar::SetFlagByName("async_shader_compilation", g_graphics_config.async_shaders ? "true" : "false");
   rex::cvar::SetFlagByName("vulkan_pipeline_creation_threads", std::to_string(g_graphics_config.pipeline_threads));
 
@@ -65,9 +69,9 @@ void ApplyGraphicsConfig() {
     rex::cvar::SetFlagByName("vulkan_allow_present_mode_immediate", "false");
   }
 
-  MAIN_LOGI("Applied Graphics Config: res=%d, vsync=%d, effect=%s, async=%d, threads=%d, mode=%d",
+  MAIN_LOGI("Applied Graphics Config: res=%d, vsync=%d, effect=%s, aniso=%d, async=%d, threads=%d, mode=%d",
             g_graphics_config.res_scale, g_graphics_config.vsync, g_graphics_config.present_effect.c_str(),
-            g_graphics_config.async_shaders, g_graphics_config.pipeline_threads, g_graphics_config.present_mode);
+            g_graphics_config.anisotropic, g_graphics_config.async_shaders, g_graphics_config.pipeline_threads, g_graphics_config.present_mode);
 }
 
 int RunWindowedApp(int argc, char** argv) {
@@ -79,7 +83,8 @@ int RunWindowedApp(int argc, char** argv) {
   auto remaining = rex::cvar::Init(argc, argv);
 
   rex::cvar::SetFlagByName("async_shader_compilation", "true");
-  rex::cvar::SetFlagByName("vulkan_async_skip_incomplete_frames", "true");
+  rex::cvar::SetFlagByName("vulkan_async_skip_incomplete_frames", "false");
+  rex::cvar::SetFlagByName("render_target_path_vulkan", "fbo");
   rex::cvar::SetFlagByName("vulkan_pipeline_creation_threads", "6");
   rex::cvar::SetFlagByName("store_shaders", "true");
 
@@ -96,6 +101,13 @@ int RunWindowedApp(int argc, char** argv) {
   // across all Big (Cortex-A710/A78) and Prime (Cortex-X2/X1) performance cores.
   rex::cvar::SetFlagByName("ignore_thread_affinities", "true");
   rex::cvar::SetFlagByName("ignore_thread_priorities", "true");
+
+  // Fix for Qualcomm Adreno proprietary Vulkan drivers (Adreno 730/740/830):
+  // Sparse buffer residency causes an uncatchable abort in Qualcomm proprietary drivers.
+  // Disabling sparse shared memory forces the robust 512 MB fully-bound buffer fallback.
+  rex::cvar::SetFlagByName("vulkan_sparse_shared_memory", "false");
+  rex::cvar::SetFlagByName("vulkan_push_constants_descriptors", "false");
+  rex::cvar::SetFlagByName("vulkan_deferred_resolve_clears", "false");
 
   const char* env_root = std::getenv("DANTES_GAME_ROOT");
   std::filesystem::path ext = env_root ? std::filesystem::path(env_root) : std::filesystem::path("/storage/emulated/0/Android/data/com.dantesinferno.game/files");
@@ -143,22 +155,31 @@ int RunWindowedApp(int argc, char** argv) {
     ApplyGraphicsConfig();
   }
 
-  std::string current_log_level = REXCVAR_GET(log_level);
-  if (disable_debug || current_log_level == "off") {
-    rex::cvar::SetFlagByName("log_file", "");
-    rex::cvar::SetFlagByName("log_level", "off");
-    rex::cvar::SetFlagByName("log_verbose", "false");
-    rex::cvar::SetFlagByName("log_noisy", "false");
-    rex::cvar::SetFlagByName("log_high_frequency_kernel_calls", "false");
-    rex::cvar::SetFlagByName("vulkan_validation_enabled", "false");
-    rex::cvar::SetFlagByName("vulkan_log_debug_messages", "false");
-    rex::cvar::SetFlagByName("gpu_debug_markers", "false");
-    rex::cvar::SetFlagByName("kernel_debug_monitor", "false");
-    rex::cvar::SetFlagByName("kernel_cert_monitor", "false");
-  } else if (!ext.empty()) {
+  if (!ext.empty()) {
     std::error_code ec;
     std::filesystem::create_directories(ext / "logs", ec);
-    rex::cvar::SetFlagByName("log_file", (ext / "logs" / "dantes_inferno.log").string());
+    std::string log_path = (ext / "logs" / "dantes_inferno.log").string();
+    rex::cvar::SetFlagByName("log_file", log_path);
+    rex::cvar::SetFlagByName("log_level", "info");
+
+    // Forward ReXGlue engine logs to Android logcat under tag 'ReXEngine'
+    std::thread([log_path]() {
+      for (int i = 0; i < 50 && !std::filesystem::exists(log_path); ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+      std::ifstream file(log_path);
+      if (!file.is_open()) return;
+      std::string line;
+      while (true) {
+        while (std::getline(file, line)) {
+          if (!line.empty()) {
+            __android_log_print(ANDROID_LOG_INFO, "ReXEngine", "%s", line.c_str());
+          }
+        }
+        file.clear();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      }
+    }).detach();
   }
 
   rex::InitLoggingEarly();
@@ -174,11 +195,11 @@ int RunWindowedApp(int argc, char** argv) {
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
 
     // Prevent audio buffer underruns / stuttering during video playback and heavy CPU load.
-    // Low latency audio on Android defaults to a ~4ms buffer which easily starves during VP6
-    // video decoding. Disabling low latency mode and setting sample frames to 4096 gives a
-    // smooth ~85ms cushion with zero crackling, pops or audio desync.
-    SDL_SetHint(SDL_HINT_ANDROID_LOW_LATENCY_AUDIO, "0");
-    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "4096");
+    // Configure SDL3 to use Android's native AAudio backend with Game role and safety buffer.
+    SDL_SetHintWithPriority(SDL_HINT_AUDIO_DRIVER, "AAudio", SDL_HINT_OVERRIDE);
+    SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_STREAM_ROLE, "Game", SDL_HINT_OVERRIDE);
+    SDL_SetHintWithPriority(SDL_HINT_ANDROID_LOW_LATENCY_AUDIO, "0", SDL_HINT_OVERRIDE);
+    SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "4096", SDL_HINT_OVERRIDE);
 #endif
     MAIN_LOGI("Initializing SDLWindowedAppContext...");
     rex::ui::SDLWindowedAppContext app_context;
@@ -257,7 +278,7 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_dantesinferno_game_MainActivity_nativeSetGraphicsConfig(
     JNIEnv* env, jobject /* thiz */,
     jint res_scale, jboolean vsync, jstring present_effect,
-    jboolean async_shaders, jint pipeline_threads, jint present_mode) {
+    jboolean async_shaders, jint pipeline_threads, jint present_mode, jint anisotropic) {
   g_graphics_config.res_scale = res_scale;
   g_graphics_config.vsync = vsync;
   if (present_effect) {
@@ -270,10 +291,11 @@ Java_com_dantesinferno_game_MainActivity_nativeSetGraphicsConfig(
   g_graphics_config.async_shaders = async_shaders;
   g_graphics_config.pipeline_threads = pipeline_threads;
   g_graphics_config.present_mode = present_mode;
+  g_graphics_config.anisotropic = anisotropic;
   g_graphics_config.configured = true;
 
-  MAIN_LOGI("JNI: nativeSetGraphicsConfig: res=%d, vsync=%d, effect=%s, async=%d, threads=%d, mode=%d",
-            res_scale, vsync, g_graphics_config.present_effect.c_str(), async_shaders, pipeline_threads, present_mode);
+  MAIN_LOGI("JNI: nativeSetGraphicsConfig: res=%d, vsync=%d, effect=%s, aniso=%d, async=%d, threads=%d, mode=%d",
+            res_scale, vsync, g_graphics_config.present_effect.c_str(), anisotropic, async_shaders, pipeline_threads, present_mode);
 }
 
 extern "C" JNIEXPORT jfloat JNICALL

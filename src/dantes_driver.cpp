@@ -187,8 +187,15 @@ static int DlIteratePatchDlopenCallback(struct dl_phdr_info* info, size_t /*size
 void SetDriverConfig(const DriverConfig& config) {
   std::lock_guard<std::mutex> lock(g_driver_mutex);
   g_driver_config = config;
-  LOGI("DriverConfig updated: use_turnip=%d, driver_dir='%s', driver_name='%s', turbo=%d",
-       config.use_turnip, config.driver_dir.c_str(), config.driver_name.c_str(), config.enable_turbo);
+  LOGI("DriverConfig updated: use_turnip=%d, driver_dir='%s', driver_name='%s', turbo=%d, a6xx_compat=%d",
+       config.use_turnip, config.driver_dir.c_str(), config.driver_name.c_str(), config.enable_turbo, config.a6xx_compat);
+
+  if (config.a6xx_compat) {
+    setenv("TU_DEBUG", "sysmem,nolrz,noubwc", 1);
+    setenv("MESA_VK_WSI_FORCE_BGRA8_UNORM_FIRST", "0", 1);
+    setenv("WRAPPER_BLIT", "1", 1);
+    LOGI("SetDriverConfig: Early A6xx compat environment active: TU_DEBUG=sysmem,nolrz,noubwc");
+  }
 }
 
 const DriverConfig& GetDriverConfig() {
@@ -227,6 +234,33 @@ bool InitializeDriver() {
     return false;
   }
 
+  // Configure Mesa Turnip persistent disk shader cache to prevent runtime shader compilation stutter
+  std::string cache_dir = "/storage/emulated/0/Android/data/com.dantesinferno.game/files/cache/mesa_shader_cache";
+  const char* env_root = std::getenv("DANTES_GAME_ROOT");
+  if (env_root && strlen(env_root) > 0) {
+    std::filesystem::path p(env_root);
+    if (p.filename() == "game") p = p.parent_path();
+    cache_dir = (p / "cache" / "mesa_shader_cache").string();
+  }
+  ec.clear();
+  std::filesystem::create_directories(cache_dir, ec);
+  setenv("MESA_SHADER_CACHE_DIR", cache_dir.c_str(), 1);
+  setenv("MESA_DISK_CACHE_SINGLE_FILE", "1", 1);
+  LOGI("Mesa shader disk cache configured at: %s", cache_dir.c_str());
+
+  // Handle Adreno 6xx compatibility (disable GMEM tiling, LRZ, and UBWC compression)
+  // CRITICAL: MUST be set BEFORE dlopening the driver so Mesa constructors read the environment.
+  if (g_driver_config.a6xx_compat) {
+    // sysmem: Forces rendering to system memory instead of GPU internal tile buffer (GMEM).
+    //         Fixes black screen rendering bugs on Adreno 650/660 in Mesa Turnip.
+    // nolrz: Disables Low Resolution Z (avoids false depth-test discards).
+    // noubwc: Disables Universal Bandwidth Compression (avoids WSI/AHB framebuffer glitches).
+    setenv("TU_DEBUG", "sysmem,nolrz,noubwc", 1);
+    setenv("MESA_VK_WSI_FORCE_BGRA8_UNORM_FIRST", "0", 1);
+    setenv("WRAPPER_BLIT", "1", 1);
+    LOGI("A6xx Compatibility Mode ACTIVE: TU_DEBUG=sysmem,nolrz,noubwc applied BEFORE driver dlopen!");
+  }
+
   void* handle = adrenotools_open_libvulkan(
       RTLD_NOW,
       ADRENOTOOLS_DRIVER_CUSTOM,
@@ -261,20 +295,6 @@ bool InitializeDriver() {
     adrenotools_set_turbo(true);
   }
 
-  // Configure Mesa Turnip persistent disk shader cache to prevent runtime shader compilation stutter
-  std::string cache_dir = "/storage/emulated/0/Android/data/com.dantesinferno.game/files/cache/mesa_shader_cache";
-  const char* env_root = std::getenv("DANTES_GAME_ROOT");
-  if (env_root && strlen(env_root) > 0) {
-    std::filesystem::path p(env_root);
-    if (p.filename() == "game") p = p.parent_path();
-    cache_dir = (p / "cache" / "mesa_shader_cache").string();
-  }
-  ec.clear();
-  std::filesystem::create_directories(cache_dir, ec);
-  setenv("MESA_SHADER_CACHE_DIR", cache_dir.c_str(), 1);
-  setenv("MESA_DISK_CACHE_SINGLE_FILE", "1", 1);
-  setenv("MESA_VK_WSI_PRESENT_MODE", "mailbox", 0);
-  LOGI("Mesa shader disk cache configured at: %s", cache_dir.c_str());
   return true;
 }
 
@@ -299,9 +319,6 @@ void ShutdownDriver() {
 }
 
 void LogTextureCompressionSupport() {
-  if (g_driver_config.disable_debug) {
-    return;
-  }
   void* vk_lib = dlopen("libvulkan.so", RTLD_NOW);
   if (!vk_lib) {
     LOGW("Failed to dlopen libvulkan.so for caps check: %s", dlerror());
@@ -397,11 +414,13 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_dantesinferno_game_MainActivity_nativeSetDriverConfig(
     JNIEnv* env, jobject /*thiz*/,
     jstring driverDir, jstring driverName, jstring hookLibDir,
-    jboolean useTurnip, jboolean enableTurbo, jboolean disableDebug) {
+    jboolean useTurnip, jboolean enableTurbo, jboolean disableDebug,
+    jboolean a6xxCompat) {
   dantes::driver::DriverConfig cfg;
   cfg.use_turnip = useTurnip;
   cfg.enable_turbo = enableTurbo;
   cfg.disable_debug = disableDebug;
+  cfg.a6xx_compat = a6xxCompat;
 
   if (driverDir) {
     const char* c_dir = env->GetStringUTFChars(driverDir, nullptr);
