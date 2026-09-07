@@ -50,14 +50,15 @@ public class MainActivity extends SDLActivity {
 
     @Override
     protected String[] getLibraries() {
-        // Only the RelWithDebInfo ("rd") variants of the SDK prebuilts are shipped.
-        // "librexruntime.so" and "librexgpu-xenos.so" do NOT exist in the APK;
-        // attempting to dlopen them poisons the JNI resolver and causes
-        // nativeSetDriverConfig / nativeSetGraphicsConfig to be unresolvable.
+        // Load order matters. The SDK runtime (rexruntimerd) must be loaded before
+        // the game library (dantes_inferno) which depends on it.
+        // librexgpu-xenosrd.so is dlopen'd internally by rex::runtime at startup —
+        // it must be present in the APK (ensured via CMake rex::gpu-xenos link) but
+        // must NOT be listed here; System.loadLibrary() uses a different class-loader
+        // namespace and will fail to find it, breaking the JNI resolver.
         return new String[] {
             "c++_shared",
             "rexruntimerd",
-            "rexgpu-xenosrd",
             "dantes_inferno"
         };
     }

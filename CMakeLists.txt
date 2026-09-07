@@ -68,6 +68,7 @@ if(ANDROID)
     )
     target_link_libraries(dantes_inferno PRIVATE
         rex::runtime
+        rex::gpu-xenos
         android
         log
         adrenotools
