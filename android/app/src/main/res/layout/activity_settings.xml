@@ -8,10 +8,10 @@
     <!-- Top Header Bar -->
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="54dp"
         android:background="#161B22"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp">
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
 
         <LinearLayout
             android:id="@+id/btn_back"
@@ -28,38 +28,41 @@
                 android:layout_height="wrap_content"
                 android:text="←"
                 android:textColor="#58A6FF"
-                android:textSize="22sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:letterSpacing="0.05"
                 android:text="VOLTAR AO MENU"
                 android:textColor="#58A6FF"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.05" />
+                android:textSize="13sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="CONFIGURAÇÕES DO JOGO"
+            android:letterSpacing="0.08"
+            android:text="CONFIGURAÇÕES DO DANTE'S INFERNO"
             android:textColor="#F0F6FC"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.1" />
+            android:textSize="15sp"
+            android:textStyle="bold" />
     </RelativeLayout>
 
     <!-- Scrollable Content with 2-Columns Landscape Layout -->
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
         android:fillViewport="true"
-        android:padding="20dp">
+        android:paddingStart="16dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="24dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -67,36 +70,38 @@
             android:baselineAligned="false"
             android:orientation="horizontal">
 
-            <!-- Left Column: AdrenoTools Turnip Driver Manager -->
+            <!-- Left Column: GPU Driver, Touch Controls & Debug -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="10dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
+                <!-- Section: GPU Driver -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginBottom="6dp"
                     android:letterSpacing="0.08"
                     android:text="DRIVER GRÁFICO GPU (ADRENOTOOLS)"
                     android:textColor="#58A6FF"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_card_dark"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:padding="12dp">
 
                     <!-- Switch: Use Turnip -->
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switch_use_turnip"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Carregar Driver Turnip (AdrenoTools)"
+                        android:text="Driver Turnip Customizado"
                         android:textColor="#F0F6FC"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -105,10 +110,10 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:layout_marginBottom="12dp"
-                        android:text="Substitui o driver Vulkan padrão do sistema pelo Turnip customizado via AdrenoTools para melhor desempenho e compatibilidade."
+                        android:layout_marginBottom="10dp"
+                        android:text="Usa driver Mesa Turnip via AdrenoTools. Desative para usar o driver padrão Qualcomm do sistema."
                         android:textColor="#8B949E"
-                        android:textSize="12sp" />
+                        android:textSize="11sp" />
 
                     <!-- Switch: Turbo Mode -->
                     <androidx.appcompat.widget.SwitchCompat
@@ -124,10 +129,10 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:layout_marginBottom="14dp"
-                        android:text="Força frequências máximas de clock na GPU Adreno enquanto o jogo estiver aberto."
+                        android:layout_marginBottom="10dp"
+                        android:text="Solicita frequências máximas de clock para a GPU Adreno durante a execução."
                         android:textColor="#8B949E"
-                        android:textSize="12sp" />
+                        android:textSize="11sp" />
 
                     <!-- Current Driver Info Box -->
                     <LinearLayout
@@ -135,80 +140,81 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_editor_dark"
                         android:orientation="vertical"
-                        android:padding="10dp">
+                        android:padding="8dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Status do Driver:"
                             android:textColor="#8B949E"
-                            android:textSize="11sp" />
+                            android:textSize="10sp" />
 
                         <TextView
                             android:id="@+id/tv_settings_driver_name"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Driver Turnip: vulkan.adreno.so [ATIVO]"
+                            android:text="Driver do Sistema: Qualcomm OEM [ATIVO]"
                             android:textColor="#7EE787"
-                            android:textSize="13sp"
+                            android:textSize="12sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Driver Action Buttons -->
+                    <!-- Driver Buttons -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="10dp"
                         android:orientation="vertical">
 
                         <Button
                             android:id="@+id/btn_install_driver_zip"
                             android:layout_width="match_parent"
-                            android:layout_height="44dp"
+                            android:layout_height="40dp"
                             android:background="@drawable/btn_secondary"
                             android:text="📁 Instalar Driver Turnip (.zip)..."
                             android:textAllCaps="false"
                             android:textColor="#F0F6FC"
-                            android:textSize="13sp"
+                            android:textSize="12sp"
                             android:textStyle="bold" />
 
                         <Button
                             android:id="@+id/btn_reset_system_driver"
                             android:layout_width="match_parent"
-                            android:layout_height="38dp"
-                            android:layout_marginTop="8dp"
+                            android:layout_height="36dp"
+                            android:layout_marginTop="6dp"
                             android:background="@drawable/btn_secondary"
-                            android:text="Usar Driver do Sistema (Qualcomm OEM)"
+                            android:text="Restaurar Driver do Sistema (Qualcomm)"
                             android:textAllCaps="false"
                             android:textColor="#8B949E"
-                            android:textSize="12sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Virtual Controller Settings Card -->
+                <!-- Section: Virtual Touch Controller -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginTop="14dp"
+                    android:layout_marginBottom="6dp"
                     android:letterSpacing="0.08"
-                    android:text="CONTROLE VIRTUAL NA TELA"
+                    android:text="CONTROLES VIRTUAIS NA TELA"
                     android:textColor="#58A6FF"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_card_dark"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:padding="12dp">
 
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switch_virtual_controller"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Exibir Controles no Jogo"
+                        android:text="Exibir Controles Touch na Tela"
                         android:textColor="#F0F6FC"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -217,10 +223,10 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:layout_marginBottom="12dp"
-                        android:text="Exibe botões touch, analógicos e gatilhos (estilo Windroid) somente dentro do jogo."
+                        android:layout_marginBottom="10dp"
+                        android:text="Exibe botões touch, analógicos e gatilhos na tela. Desative caso vá utilizar gamepad Bluetooth/USB."
                         android:textColor="#8B949E"
-                        android:textSize="12sp" />
+                        android:textSize="11sp" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -244,50 +250,71 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Quick TOML Performance Toggles -->
+                <!-- Section: Stability & Debug Logs -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginTop="14dp"
+                    android:layout_marginBottom="6dp"
                     android:letterSpacing="0.08"
-                    android:text="AJUSTES RÁPIDOS DE DESEMPENHO"
+                    android:text="ESTABILIDADE E DESEMPENHO"
                     android:textColor="#58A6FF"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_card_dark"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:padding="12dp">
 
-                    <!-- Switch: Desativar Todo Debug e Logs -->
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switch_disable_debug"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Desativar Todo Debug e Logs (Sem Travamentos)"
+                        android:text="Desativar Logs em Disco (Zero Stutters)"
                         android:textColor="#F0F6FC"
-                        android:textSize="13sp"
+                        android:textSize="14sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:layout_marginBottom="12dp"
-                        android:text="Desliga completamente a gravação de logs em disco (downpour.log), camadas de validação Vulkan e rastreadores de debug. Elimina congelamentos e micro-travamentos no aparelho."
+                        android:text="Desativa escrita constante de logs em disco e validação de GPU, eliminando micro-travamentos no celular."
                         android:textColor="#8B949E"
                         android:textSize="11sp" />
+                </LinearLayout>
 
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginBottom="12dp"
-                        android:background="#21262D" />
+            </LinearLayout>
 
-                    <!-- Internal Resolution (Guest Render Target) -->
+            <!-- Right Column: Graphics, Display, Shaders & Cache -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:letterSpacing="0.08"
+                    android:text="CONFIGURAÇÕES GRÁFICAS (VULKAN)"
+                    android:textColor="#58A6FF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_dark"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <!-- Internal Resolution Scale -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -298,7 +325,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Resolução Interna (Render UE3):"
+                            android:text="Escala de Resolução:"
                             android:textColor="#F0F6FC"
                             android:textSize="13sp"
                             android:textStyle="bold" />
@@ -313,16 +340,34 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:layout_marginBottom="6dp"
-                        android:text="Reduz a resolução dos alvos de renderização internos da Unreal Engine 3 (GBuffers/Shaders) para máximo FPS. A imagem é escalonada em tela cheia via FSR3 sem encolher a janela."
+                        android:layout_marginBottom="10dp"
+                        android:text="720p é a resolução original do Xbox 360 (máximo desempenho). 1080p melhora a nitidez em celulares potentes."
                         android:textColor="#8B949E"
                         android:textSize="11sp" />
 
-                    <!-- FPS Limit -->
+                    <!-- VSync -->
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switch_vsync"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="VSync (Sincronização Vertical)"
+                        android:textColor="#F0F6FC"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="10dp"
+                        android:text="Evita cortes na imagem (tearing) sincronizando a taxa de quadros à tela do celular."
+                        android:textColor="#8B949E"
+                        android:textSize="11sp" />
+
+                    <!-- Upscaler / Present Effect -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -330,33 +375,30 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Limite de Taxa de FPS:"
+                            android:text="Filtro de Pós-Processamento:"
                             android:textColor="#F0F6FC"
                             android:textSize="13sp"
                             android:textStyle="bold" />
 
                         <Spinner
-                            android:id="@+id/spinner_fps_limit"
+                            android:id="@+id/spinner_present_effect"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
                     </LinearLayout>
 
-                    <!-- VSync -->
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switch_vsync"
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="VSync (Sincronização Vertical)"
-                        android:textColor="#F0F6FC"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="10dp"
+                        android:text="FXAA suaviza bordas serrilhadas. CAS e FSR aumentam a nitidez da imagem sem custo de desempenho."
+                        android:textColor="#8B949E"
+                        android:textSize="11sp" />
 
                     <!-- Vulkan Present Mode -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -375,35 +417,20 @@
                             android:layout_height="wrap_content" />
                     </LinearLayout>
 
-                    <!-- Present Effect / Upscaler -->
-                    <LinearLayout
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Upscaler (Present Effect):"
-                            android:textColor="#F0F6FC"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <Spinner
-                            android:id="@+id/spinner_present_effect"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                    </LinearLayout>
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="10dp"
+                        android:text="FIFO oferece estabilidade com VSync. Mailbox oferece a menor latência de resposta nos toques."
+                        android:textColor="#8B949E"
+                        android:textSize="11sp" />
 
                     <!-- Async Shader Compilation -->
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switch_async_shaders"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
                         android:text="Compilação Assíncrona de Shaders"
                         android:textColor="#F0F6FC"
                         android:textSize="13sp"
@@ -413,7 +440,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Compila shaders em segundo plano para evitar micro-travamentos (stutters) durante o jogo."
+                        android:layout_marginBottom="10dp"
+                        android:text="Compila shaders em threads secundárias, reduzindo travamentos durante combate e efeitos visuais."
                         android:textColor="#8B949E"
                         android:textSize="11sp" />
 
@@ -421,7 +449,6 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -429,7 +456,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Threads Compilação Pipeline:"
+                            android:text="Threads de Criação de Pipeline:"
                             android:textColor="#F0F6FC"
                             android:textSize="13sp"
                             android:textStyle="bold" />
@@ -440,86 +467,26 @@
                             android:layout_height="wrap_content" />
                     </LinearLayout>
 
-                    <!-- Texture Cache Memory Limits -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Cache de Texturas (VRAM/RAM):"
-                            android:textColor="#F0F6FC"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <Spinner
-                            android:id="@+id/spinner_texture_cache"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="Limites de memória para o cache de texturas. Valores de 512 MB ou mais impedem a destruição prematura de texturas e eliminam texturas brancas no Downpour."
-                        android:textColor="#8B949E"
-                        android:textSize="11sp" />
-
-                    <!-- Anti-White Texture (gpu_allow_invalid_fetch_constants) -->
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switch_allow_invalid_fetch_constants"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="Prevenção de Texturas Brancas (UE3)"
-                        android:textColor="#F0F6FC"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="Permite constantes transitórias de textura usadas pelo streaming da Unreal Engine 3, impedindo que texturas fiquem brancas durante a transição de mipmaps."
-                        android:textColor="#8B949E"
-                        android:textSize="11sp" />
-
-                    <Button
-                        android:id="@+id/btn_apply_quick_settings"
-                        android:layout_width="match_parent"
-                        android:layout_height="40dp"
-                        android:layout_marginTop="14dp"
-                        android:background="@drawable/btn_secondary"
-                        android:text="Aplicar Ajustes ao downpour.toml"
-                        android:textAllCaps="false"
-                        android:textColor="#58A6FF"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Shader Cache Management -->
+                <!-- Section: Shader Cache Management -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginTop="14dp"
+                    android:layout_marginBottom="6dp"
                     android:letterSpacing="0.08"
                     android:text="GERENCIAMENTO DE SHADER CACHE"
                     android:textColor="#58A6FF"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_card_dark"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:padding="12dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -541,7 +508,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0.00 MB"
-                            android:textColor="#3FB950"
+                            android:textColor="#7EE787"
                             android:textSize="13sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -549,105 +516,36 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginBottom="12dp"
-                        android:text="Armazena os shaders SPIR-V e pipelines pré-compilados. Se você trocar de driver Turnip ou observar glitches visuais, limpe o cache."
+                        android:layout_marginTop="3dp"
+                        android:layout_marginBottom="10dp"
+                        android:text="Se você trocar de driver Turnip ou observar glitches visuais, limpe o cache de shaders."
                         android:textColor="#8B949E"
                         android:textSize="11sp" />
 
                     <Button
                         android:id="@+id/btn_clear_shader_cache"
                         android:layout_width="match_parent"
-                        android:layout_height="40dp"
+                        android:layout_height="38dp"
                         android:background="@drawable/btn_danger"
                         android:text="Limpar Cache de Shaders e Pipelines"
                         android:textAllCaps="false"
                         android:textColor="#F85149"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 
-            </LinearLayout>
-
-            <!-- Right Column: Full downpour.toml Raw Editor -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:visibility="invisible">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:letterSpacing="0.08"
-                    android:text="EDITOR DIRETO DO TOML (DOWNPOUR.TOML)"
-                    android:textColor="#58A6FF"
+                <!-- Section: Apply and Save Button -->
+                <Button
+                    android:id="@+id/btn_apply_quick_settings"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/btn_title_start"
+                    android:text="💾 Salvar e Aplicar Configurações"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
                     android:textSize="13sp"
                     android:textStyle="bold" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_card_dark"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="Edite qualquer parâmetro avançado de renderização, áudio ou controles. As alterações são salvas diretamente no arquivo de configuração do jogo."
-                        android:textColor="#8B949E"
-                        android:textSize="12sp" />
-
-                    <!-- TOML Text Editor Field -->
-                    <EditText
-                        android:id="@+id/et_toml_content"
-                        android:layout_width="match_parent"
-                        android:layout_height="270dp"
-                        android:background="@drawable/bg_editor_dark"
-                        android:fontFamily="monospace"
-                        android:gravity="top|start"
-                        android:inputType="textMultiLine|textNoSuggestions"
-                        android:scrollbars="vertical"
-                        android:textColor="#E6EDF3"
-                        android:textSize="12sp" />
-
-                    <!-- Action Buttons for TOML -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:orientation="horizontal">
-
-                        <Button
-                            android:id="@+id/btn_save_toml"
-                            android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_marginEnd="6dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/btn_title_start"
-                            android:text="💾 Salvar TOML"
-                            android:textAllCaps="false"
-                            android:textColor="#FFFFFF"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <Button
-                            android:id="@+id/btn_reload_toml"
-                            android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_marginStart="6dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/btn_secondary"
-                            android:text="🔄 Restaurar Padrão"
-                            android:textAllCaps="false"
-                            android:textColor="#8B949E"
-                            android:textSize="13sp" />
-                    </LinearLayout>
-                </LinearLayout>
 
             </LinearLayout>
 

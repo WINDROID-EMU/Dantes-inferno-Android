@@ -33,6 +33,43 @@
 
 namespace {
 
+struct GraphicsConfig {
+  int res_scale = 1;
+  bool vsync = true;
+  std::string present_effect = "fxaa";
+  bool async_shaders = true;
+  int pipeline_threads = -1;
+  int present_mode = 0;
+  bool configured = false;
+};
+static GraphicsConfig g_graphics_config;
+
+void ApplyGraphicsConfig() {
+  if (!g_graphics_config.configured) return;
+  rex::cvar::SetFlagByName("resolution_scale", std::to_string(g_graphics_config.res_scale));
+  rex::cvar::SetFlagByName("draw_resolution_scale_x", std::to_string(g_graphics_config.res_scale));
+  rex::cvar::SetFlagByName("draw_resolution_scale_y", std::to_string(g_graphics_config.res_scale));
+  rex::cvar::SetFlagByName("vsync", g_graphics_config.vsync ? "true" : "false");
+  rex::cvar::SetFlagByName("swap_post_effect", g_graphics_config.present_effect);
+  rex::cvar::SetFlagByName("async_shader_compilation", g_graphics_config.async_shaders ? "true" : "false");
+  rex::cvar::SetFlagByName("vulkan_pipeline_creation_threads", std::to_string(g_graphics_config.pipeline_threads));
+
+  if (g_graphics_config.present_mode == 1) {
+    rex::cvar::SetFlagByName("vulkan_allow_present_mode_mailbox", "true");
+    rex::cvar::SetFlagByName("vulkan_allow_present_mode_immediate", "false");
+  } else if (g_graphics_config.present_mode == 2) {
+    rex::cvar::SetFlagByName("vulkan_allow_present_mode_immediate", "true");
+    rex::cvar::SetFlagByName("vulkan_allow_present_mode_mailbox", "false");
+  } else {
+    rex::cvar::SetFlagByName("vulkan_allow_present_mode_mailbox", "false");
+    rex::cvar::SetFlagByName("vulkan_allow_present_mode_immediate", "false");
+  }
+
+  MAIN_LOGI("Applied Graphics Config: res=%d, vsync=%d, effect=%s, async=%d, threads=%d, mode=%d",
+            g_graphics_config.res_scale, g_graphics_config.vsync, g_graphics_config.present_effect.c_str(),
+            g_graphics_config.async_shaders, g_graphics_config.pipeline_threads, g_graphics_config.present_mode);
+}
+
 int RunWindowedApp(int argc, char** argv) {
 #if defined(__ANDROID__)
   rex::memory::AndroidInitialize();
@@ -88,6 +125,15 @@ int RunWindowedApp(int argc, char** argv) {
     if (std::filesystem::exists(toml_path)) {
       rex::cvar::LoadConfig(toml_path);
     }
+    if (ext.filename() == "game") {
+      auto parent_toml = ext.parent_path() / "dantes_inferno.toml";
+      if (std::filesystem::exists(parent_toml)) {
+        rex::cvar::LoadConfig(parent_toml);
+      }
+    }
+    ApplyGraphicsConfig();
+  } else {
+    ApplyGraphicsConfig();
   }
 
   std::string current_log_level = REXCVAR_GET(log_level);
@@ -192,4 +238,28 @@ Java_com_dantesinferno_game_MainActivity_nativeOnIsoPicked(JNIEnv* env, jobject 
     env->ReleaseStringUTFChars(path, native_str);
   }
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_dantesinferno_game_MainActivity_nativeSetGraphicsConfig(
+    JNIEnv* env, jobject /* thiz */,
+    jint res_scale, jboolean vsync, jstring present_effect,
+    jboolean async_shaders, jint pipeline_threads, jint present_mode) {
+  g_graphics_config.res_scale = res_scale;
+  g_graphics_config.vsync = vsync;
+  if (present_effect) {
+    const char* effect_str = env->GetStringUTFChars(present_effect, nullptr);
+    if (effect_str) {
+      g_graphics_config.present_effect = effect_str;
+      env->ReleaseStringUTFChars(present_effect, effect_str);
+    }
+  }
+  g_graphics_config.async_shaders = async_shaders;
+  g_graphics_config.pipeline_threads = pipeline_threads;
+  g_graphics_config.present_mode = present_mode;
+  g_graphics_config.configured = true;
+
+  MAIN_LOGI("JNI: nativeSetGraphicsConfig: res=%d, vsync=%d, effect=%s, async=%d, threads=%d, mode=%d",
+            res_scale, vsync, g_graphics_config.present_effect.c_str(), async_shaders, pipeline_threads, present_mode);
+}
 #endif
+

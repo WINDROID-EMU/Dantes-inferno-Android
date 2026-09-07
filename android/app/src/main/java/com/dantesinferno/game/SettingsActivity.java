@@ -1,7 +1,8 @@
 package com.dantesinferno.game;
 
-import android.content.Context;
-import android.content.SharedPreferences;
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -12,30 +13,36 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import android.app.Activity;
-import android.content.Intent;
-import android.net.Uri;
 import androidx.appcompat.widget.SwitchCompat;
 
 public class SettingsActivity extends AppCompatActivity {
 
     private static final int REQUEST_CODE_DRIVER_ZIP = 2001;
 
+    // Driver & Debug Controls
     private SwitchCompat switchUseTurnip;
     private SwitchCompat switchTurboMode;
+    private SwitchCompat switchDisableDebug;
     private TextView tvDriverStatus;
     private Button btnInstallDriverZip;
     private Button btnResetSystemDriver;
 
+    // Virtual Controls
+    private SwitchCompat switchVirtualController;
+    private Spinner spinnerControllerOpacity;
+
+    // Graphics Controls
     private Spinner spinnerResScale;
-    private Spinner spinnerFpsLimit;
     private SwitchCompat switchVsync;
+    private Spinner spinnerPresentEffect;
+    private Spinner spinnerVulkanPresentMode;
+    private SwitchCompat switchAsyncShaders;
+    private Spinner spinnerShaderThreads;
+
+    // Shader Cache
     private TextView tvShaderCacheSize;
     private Button btnClearShaderCache;
     private Button btnApplyQuickSettings;
-
-    private SwitchCompat switchVirtualController;
-    private Spinner spinnerControllerOpacity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,36 +51,46 @@ public class SettingsActivity extends AppCompatActivity {
 
         initViews();
         setupDriverSection();
+        setupVirtualControllerSection();
         setupGraphicsSection();
-        setupControllerSection();
+        setupCacheSection();
     }
 
     private void initViews() {
         View btnBack = findViewById(R.id.btn_back);
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> finish());
+            btnBack.setOnClickListener(v -> {
+                GameConfigManager.saveTomlConfig(this);
+                finish();
+            });
         }
 
         switchUseTurnip = findViewById(R.id.switch_use_turnip);
         switchTurboMode = findViewById(R.id.switch_turbo_mode);
+        switchDisableDebug = findViewById(R.id.switch_disable_debug);
         tvDriverStatus = findViewById(R.id.tv_settings_driver_name);
         btnInstallDriverZip = findViewById(R.id.btn_install_driver_zip);
         btnResetSystemDriver = findViewById(R.id.btn_reset_system_driver);
 
+        switchVirtualController = findViewById(R.id.switch_virtual_controller);
+        spinnerControllerOpacity = findViewById(R.id.spinner_controller_opacity);
+
         spinnerResScale = findViewById(R.id.spinner_resolution_scale);
-        spinnerFpsLimit = findViewById(R.id.spinner_fps_limit);
         switchVsync = findViewById(R.id.switch_vsync);
+        spinnerPresentEffect = findViewById(R.id.spinner_present_effect);
+        spinnerVulkanPresentMode = findViewById(R.id.spinner_vulkan_present_mode);
+        switchAsyncShaders = findViewById(R.id.switch_async_shaders);
+        spinnerShaderThreads = findViewById(R.id.spinner_shader_threads);
+
         tvShaderCacheSize = findViewById(R.id.tv_shader_cache_size);
         btnClearShaderCache = findViewById(R.id.btn_clear_shader_cache);
         btnApplyQuickSettings = findViewById(R.id.btn_apply_quick_settings);
-
-        switchVirtualController = findViewById(R.id.switch_virtual_controller);
-        spinnerControllerOpacity = findViewById(R.id.spinner_controller_opacity);
     }
 
     private void setupDriverSection() {
         boolean useTurnip = GameConfigManager.isTurnipEnabled(this);
         boolean turbo = GameConfigManager.isTurboEnabled(this);
+        boolean disableDebug = GameConfigManager.isDisableDebug(this);
 
         if (switchUseTurnip != null) {
             switchUseTurnip.setChecked(useTurnip);
@@ -95,6 +112,13 @@ public class SettingsActivity extends AppCompatActivity {
             });
         }
 
+        if (switchDisableDebug != null) {
+            switchDisableDebug.setChecked(disableDebug);
+            switchDisableDebug.setOnCheckedChangeListener((bv, isChecked) -> {
+                GameConfigManager.setDisableDebug(this, isChecked);
+            });
+        }
+
         if (btnInstallDriverZip != null) {
             btnInstallDriverZip.setOnClickListener(v -> launchDriverPicker());
         }
@@ -105,7 +129,7 @@ public class SettingsActivity extends AppCompatActivity {
                 GameConfigManager.markTurnipLaunchInProgress(this, false);
                 if (switchUseTurnip != null) switchUseTurnip.setChecked(false);
                 updateDriverStatusText();
-                Toast.makeText(this, "Driver do Sistema (Qualcomm OEM) definido como padrão.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Driver do Sistema (Qualcomm OEM) restaurado.", Toast.LENGTH_SHORT).show();
             });
         }
 
@@ -154,40 +178,57 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    private void setupGraphicsSection() {
-        SharedPreferences prefs = getSharedPreferences(GameConfigManager.PREF_NAME, MODE_PRIVATE);
+    private void setupVirtualControllerSection() {
+        if (switchVirtualController != null) {
+            boolean showVc = GameConfigManager.isShowVirtualController(this);
+            switchVirtualController.setChecked(showVc);
+            switchVirtualController.setOnCheckedChangeListener((bv, isChecked) -> {
+                GameConfigManager.setShowVirtualController(this, isChecked);
+            });
+        }
 
-        // Resolution Scale Spinner
-        if (spinnerResScale != null) {
-            String[] scales = new String[] { "720p (Nativo X360 - 1x)", "1080p (Alta Qualidade - 1.5x)", "1440p (2x SSAA)", "540p (Modo Desempenho)" };
-            ArrayAdapter<String> scaleAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, scales);
-            spinnerResScale.setAdapter(scaleAdapter);
-            int savedScale = prefs.getInt("resolution_scale_idx", 0);
-            spinnerResScale.setSelection(savedScale);
+        if (spinnerControllerOpacity != null) {
+            String[] opacities = new String[] { "70% (Padrão)", "100% (Máxima Visibilidade)", "50% (Sutil)", "25% (Muito Transparente)" };
+            ArrayAdapter<String> opAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, opacities);
+            spinnerControllerOpacity.setAdapter(opAdapter);
 
-            spinnerResScale.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            int currentOp = GameConfigManager.getControllerOpacity(this);
+            if (currentOp == 100) spinnerControllerOpacity.setSelection(1);
+            else if (currentOp == 50) spinnerControllerOpacity.setSelection(2);
+            else if (currentOp == 25) spinnerControllerOpacity.setSelection(3);
+            else spinnerControllerOpacity.setSelection(0);
+
+            spinnerControllerOpacity.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                    prefs.edit().putInt("resolution_scale_idx", position).apply();
+                    int op = (position == 1) ? 100 : (position == 2 ? 50 : (position == 3 ? 25 : 70));
+                    GameConfigManager.setControllerOpacity(SettingsActivity.this, op);
                 }
 
                 @Override
                 public void onNothingSelected(AdapterView<?> parent) {}
             });
         }
+    }
 
-        // FPS Limit Spinner
-        if (spinnerFpsLimit != null) {
-            String[] fpsOptions = new String[] { "60 FPS (Padrão)", "30 FPS (Modo Bateria)", "Ilimitado" };
-            ArrayAdapter<String> fpsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, fpsOptions);
-            spinnerFpsLimit.setAdapter(fpsAdapter);
-            int savedFps = prefs.getInt("fps_limit_idx", 0);
-            spinnerFpsLimit.setSelection(savedFps);
+    private void setupGraphicsSection() {
+        // Resolution Scale Spinner
+        if (spinnerResScale != null) {
+            String[] scales = new String[] {
+                "720p (Nativo Xbox 360 - 1x)",
+                "1080p (Alta Qualidade - 1.5x / 2x)",
+                "1440p (SSAA Máximo - 2x)",
+                "540p (Modo Desempenho)"
+            };
+            ArrayAdapter<String> scaleAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, scales);
+            spinnerResScale.setAdapter(scaleAdapter);
+            int savedScale = GameConfigManager.getResolutionScaleIdx(this);
+            spinnerResScale.setSelection(savedScale);
 
-            spinnerFpsLimit.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            spinnerResScale.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                    prefs.edit().putInt("fps_limit_idx", position).apply();
+                    GameConfigManager.setResolutionScaleIdx(SettingsActivity.this, position);
                 }
 
                 @Override
@@ -197,14 +238,95 @@ public class SettingsActivity extends AppCompatActivity {
 
         // VSync Switch
         if (switchVsync != null) {
-            boolean vsync = prefs.getBoolean("vsync_enabled", true);
+            boolean vsync = GameConfigManager.isVsyncEnabled(this);
             switchVsync.setChecked(vsync);
             switchVsync.setOnCheckedChangeListener((bv, isChecked) -> {
-                prefs.edit().putBoolean("vsync_enabled", isChecked).apply();
+                GameConfigManager.setVsyncEnabled(this, isChecked);
             });
         }
 
-        // Clear Cache
+        // Present Effect / Upscaler Spinner
+        if (spinnerPresentEffect != null) {
+            String[] effects = new String[] {
+                "Nenhum (Bilinear Nativo)",
+                "FXAA (Anti-Aliasing Rápido)",
+                "CAS (AMD FidelityFX Contrast Adaptive)",
+                "FSR (AMD FidelityFX Super Resolution)"
+            };
+            ArrayAdapter<String> effectAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, effects);
+            spinnerPresentEffect.setAdapter(effectAdapter);
+            int savedEffect = GameConfigManager.getPresentEffectIdx(this);
+            spinnerPresentEffect.setSelection(savedEffect);
+
+            spinnerPresentEffect.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    GameConfigManager.setPresentEffectIdx(SettingsActivity.this, position);
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {}
+            });
+        }
+
+        // Vulkan Present Mode Spinner
+        if (spinnerVulkanPresentMode != null) {
+            String[] modes = new String[] {
+                "FIFO (Padrão com VSync)",
+                "Mailbox (Ultra Baixa Latência)",
+                "Immediate (Sem VSync)"
+            };
+            ArrayAdapter<String> modeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, modes);
+            spinnerVulkanPresentMode.setAdapter(modeAdapter);
+            int savedMode = GameConfigManager.getVulkanPresentModeIdx(this);
+            spinnerVulkanPresentMode.setSelection(savedMode);
+
+            spinnerVulkanPresentMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    GameConfigManager.setVulkanPresentModeIdx(SettingsActivity.this, position);
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {}
+            });
+        }
+
+        // Async Shader Compilation Switch
+        if (switchAsyncShaders != null) {
+            boolean asyncShaders = GameConfigManager.isAsyncShadersEnabled(this);
+            switchAsyncShaders.setChecked(asyncShaders);
+            switchAsyncShaders.setOnCheckedChangeListener((bv, isChecked) -> {
+                GameConfigManager.setAsyncShadersEnabled(this, isChecked);
+            });
+        }
+
+        // Pipeline Threads Spinner
+        if (spinnerShaderThreads != null) {
+            String[] threads = new String[] {
+                "Automático (Recomendado)",
+                "2 Threads de Criação",
+                "4 Threads de Criação",
+                "1 Thread (Modo Econômico)"
+            };
+            ArrayAdapter<String> threadAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, threads);
+            spinnerShaderThreads.setAdapter(threadAdapter);
+            int savedThreads = GameConfigManager.getPipelineThreadsIdx(this);
+            spinnerShaderThreads.setSelection(savedThreads);
+
+            spinnerShaderThreads.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    GameConfigManager.setPipelineThreadsIdx(SettingsActivity.this, position);
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {}
+            });
+        }
+    }
+
+    private void setupCacheSection() {
         if (btnClearShaderCache != null) {
             btnClearShaderCache.setOnClickListener(v -> {
                 GameConfigManager.clearCache(this);
@@ -215,7 +337,8 @@ public class SettingsActivity extends AppCompatActivity {
 
         if (btnApplyQuickSettings != null) {
             btnApplyQuickSettings.setOnClickListener(v -> {
-                Toast.makeText(this, "Configurações gráficas salvas com sucesso!", Toast.LENGTH_SHORT).show();
+                GameConfigManager.saveTomlConfig(this);
+                Toast.makeText(this, "Configurações salvas e aplicadas com sucesso!", Toast.LENGTH_SHORT).show();
                 finish();
             });
         }
@@ -228,41 +351,5 @@ public class SettingsActivity extends AppCompatActivity {
         long bytes = GameConfigManager.getCacheSizeBytes(this);
         double mb = bytes / (1024.0 * 1024.0);
         tvShaderCacheSize.setText(String.format(java.util.Locale.US, "%.2f MB", mb));
-    }
-
-    private void setupControllerSection() {
-        SharedPreferences prefs = getSharedPreferences(GameConfigManager.PREF_NAME, MODE_PRIVATE);
-
-        if (switchVirtualController != null) {
-            boolean showVc = prefs.getBoolean("show_virtual_controller", true);
-            switchVirtualController.setChecked(showVc);
-            switchVirtualController.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                prefs.edit().putBoolean("show_virtual_controller", isChecked).apply();
-                Toast.makeText(this, isChecked ? "Controles virtuais ativados." : "Controles virtuais desativados.", Toast.LENGTH_SHORT).show();
-            });
-        }
-
-        if (spinnerControllerOpacity != null) {
-            String[] opacities = new String[] { "70% (Padrão)", "100% (Totalmente Visível)", "50% (Sutil)", "25% (Muito Transparente)" };
-            ArrayAdapter<String> opAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, opacities);
-            spinnerControllerOpacity.setAdapter(opAdapter);
-
-            int currentOp = prefs.getInt("controller_opacity", 70);
-            if (currentOp == 100) spinnerControllerOpacity.setSelection(1);
-            else if (currentOp == 50) spinnerControllerOpacity.setSelection(2);
-            else if (currentOp == 25) spinnerControllerOpacity.setSelection(3);
-            else spinnerControllerOpacity.setSelection(0);
-
-            spinnerControllerOpacity.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                    int op = (position == 1) ? 100 : (position == 2 ? 50 : (position == 3 ? 25 : 70));
-                    prefs.edit().putInt("controller_opacity", op).apply();
-                }
-
-                @Override
-                public void onNothingSelected(AdapterView<?> parent) {}
-            });
-        }
     }
 }

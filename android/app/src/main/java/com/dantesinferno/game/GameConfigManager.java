@@ -5,14 +5,16 @@ import android.content.SharedPreferences;
 import android.util.Log;
 
 import java.io.File;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class GameConfigManager {
 
     private static final String TAG = "GameConfigManager";
 
     public static final String PREF_NAME = "dantes_settings";
+
+    // Driver preferences
     public static final String PREF_USE_TURNIP = "use_turnip";
     public static final String PREF_DRIVER_NAME = "driver_name";
     public static final String PREF_TURBO = "turbo_mode";
@@ -24,6 +26,18 @@ public class GameConfigManager {
 
     public static final String PREF_TURNIP_IN_FLIGHT = "turnip_in_flight";
     public static final String PREF_DRIVER_MIGRATED_V2 = "driver_preference_migrated_v2";
+
+    // Graphics & Engine preferences
+    public static final String PREF_RES_SCALE_IDX = "resolution_scale_idx";
+    public static final String PREF_VSYNC = "vsync_enabled";
+    public static final String PREF_PRESENT_EFFECT_IDX = "present_effect_idx";
+    public static final String PREF_VULKAN_PRESENT_MODE_IDX = "vulkan_present_mode_idx";
+    public static final String PREF_ASYNC_SHADERS = "async_shaders_enabled";
+    public static final String PREF_PIPELINE_THREADS_IDX = "pipeline_threads_idx";
+
+    // Virtual Controller preferences
+    public static final String PREF_SHOW_VIRTUAL_CONTROLLER = "show_virtual_controller";
+    public static final String PREF_CONTROLLER_OPACITY = "controller_opacity";
 
     public static File getStorageDir(Context context) {
         File ext = context.getExternalFilesDir(null);
@@ -120,9 +134,10 @@ public class GameConfigManager {
         return dir;
     }
 
+    // Driver accessors
     public static boolean isTurnipEnabled(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        return prefs.getBoolean(PREF_USE_TURNIP, false);
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getBoolean(PREF_USE_TURNIP, false);
     }
 
     public static void setTurnipEnabled(Context context, boolean enabled) {
@@ -219,6 +234,178 @@ public class GameConfigManager {
             return "Turnip ativado (Nenhum driver .zip instalado ainda)";
         } else {
             return "Qualcomm OEM (Driver do Sistema Vulkan)";
+        }
+    }
+
+    // Graphics Settings Accessors
+    public static int getResolutionScaleIdx(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getInt(PREF_RES_SCALE_IDX, 0); // 0 = 720p 1x
+    }
+
+    public static void setResolutionScaleIdx(Context context, int idx) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit().putInt(PREF_RES_SCALE_IDX, idx).apply();
+    }
+
+    public static int getResolutionScaleValue(Context context) {
+        int idx = getResolutionScaleIdx(context);
+        switch (idx) {
+            case 1: // 1080p
+            case 2: // 1440p
+                return 2;
+            case 0: // 720p
+            case 3: // 540p
+            default:
+                return 1;
+        }
+    }
+
+    public static boolean isVsyncEnabled(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getBoolean(PREF_VSYNC, true);
+    }
+
+    public static void setVsyncEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit().putBoolean(PREF_VSYNC, enabled).apply();
+    }
+
+    public static int getPresentEffectIdx(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getInt(PREF_PRESENT_EFFECT_IDX, 1); // 1 = fxaa default
+    }
+
+    public static void setPresentEffectIdx(Context context, int idx) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit().putInt(PREF_PRESENT_EFFECT_IDX, idx).apply();
+    }
+
+    public static String getPresentEffectString(Context context) {
+        int idx = getPresentEffectIdx(context);
+        switch (idx) {
+            case 0: return "none";
+            case 1: return "fxaa";
+            case 2: return "cas";
+            case 3: return "fsr";
+            default: return "fxaa";
+        }
+    }
+
+    public static int getVulkanPresentModeIdx(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getInt(PREF_VULKAN_PRESENT_MODE_IDX, 0); // 0 = FIFO (VSync)
+    }
+
+    public static void setVulkanPresentModeIdx(Context context, int idx) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit().putInt(PREF_VULKAN_PRESENT_MODE_IDX, idx).apply();
+    }
+
+    public static boolean isAsyncShadersEnabled(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getBoolean(PREF_ASYNC_SHADERS, true);
+    }
+
+    public static void setAsyncShadersEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit().putBoolean(PREF_ASYNC_SHADERS, enabled).apply();
+    }
+
+    public static int getPipelineThreadsIdx(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getInt(PREF_PIPELINE_THREADS_IDX, 0); // 0 = Auto (-1)
+    }
+
+    public static void setPipelineThreadsIdx(Context context, int idx) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit().putInt(PREF_PIPELINE_THREADS_IDX, idx).apply();
+    }
+
+    public static int getPipelineThreadsValue(Context context) {
+        int idx = getPipelineThreadsIdx(context);
+        switch (idx) {
+            case 1: return 2;
+            case 2: return 4;
+            case 3: return 1;
+            case 0:
+            default:
+                return -1; // Auto
+        }
+    }
+
+    public static boolean isShowVirtualController(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getBoolean(PREF_SHOW_VIRTUAL_CONTROLLER, true);
+    }
+
+    public static void setShowVirtualController(Context context, boolean show) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit().putBoolean(PREF_SHOW_VIRTUAL_CONTROLLER, show).apply();
+    }
+
+    public static int getControllerOpacity(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getInt(PREF_CONTROLLER_OPACITY, 70);
+    }
+
+    public static void setControllerOpacity(Context context, int opacity) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit().putInt(PREF_CONTROLLER_OPACITY, opacity).apply();
+    }
+
+    /**
+     * Writes dantes_inferno.toml to ensure settings are persistently loaded by rex::cvar::LoadConfig
+     */
+    public static void saveTomlConfig(Context context) {
+        File storage = getStorageDir(context);
+        if (storage == null) return;
+
+        File tomlFile = new File(storage, "dantes_inferno.toml");
+        StringBuilder sb = new StringBuilder();
+        sb.append("# Dante's Inferno (ReXGlue) Configuration\n");
+        sb.append("# Generated by Dante's Inferno Android Settings\n\n");
+
+        int resScale = getResolutionScaleValue(context);
+        boolean vsync = isVsyncEnabled(context);
+        String effect = getPresentEffectString(context);
+        boolean asyncShaders = isAsyncShadersEnabled(context);
+        int threads = getPipelineThreadsValue(context);
+        int presentMode = getVulkanPresentModeIdx(context);
+
+        sb.append("resolution_scale = ").append(resScale).append("\n");
+        sb.append("draw_resolution_scale_x = ").append(resScale).append("\n");
+        sb.append("draw_resolution_scale_y = ").append(resScale).append("\n");
+        sb.append("vsync = ").append(vsync ? "true" : "false").append("\n");
+        sb.append("swap_post_effect = \"").append(effect).append("\"\n");
+        sb.append("async_shader_compilation = ").append(asyncShaders ? "true" : "false").append("\n");
+        sb.append("vulkan_pipeline_creation_threads = ").append(threads).append("\n");
+
+        if (presentMode == 1) {
+            sb.append("vulkan_allow_present_mode_mailbox = true\n");
+            sb.append("vulkan_allow_present_mode_immediate = false\n");
+        } else if (presentMode == 2) {
+            sb.append("vulkan_allow_present_mode_immediate = true\n");
+            sb.append("vulkan_allow_present_mode_mailbox = false\n");
+        } else {
+            sb.append("vulkan_allow_present_mode_mailbox = false\n");
+            sb.append("vulkan_allow_present_mode_immediate = false\n");
+        }
+
+        try (FileWriter fw = new FileWriter(tomlFile)) {
+            fw.write(sb.toString());
+            Log.i(TAG, "Saved TOML config to: " + tomlFile.getAbsolutePath());
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to write dantes_inferno.toml: " + e.getMessage(), e);
+        }
+
+        // Also mirror to game subfolder if it exists
+        File gameFolder = new File(storage, "game");
+        if (gameFolder.exists() && gameFolder.isDirectory()) {
+            File gameToml = new File(gameFolder, "dantes_inferno.toml");
+            try (FileWriter fw = new FileWriter(gameToml)) {
+                fw.write(sb.toString());
+            } catch (IOException ignored) {}
         }
     }
 

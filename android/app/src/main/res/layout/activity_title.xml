@@ -12,7 +12,7 @@
         android:layout_height="match_parent"
         android:scaleType="fitXY"
         android:src="@drawable/title_screen"
-        android:contentDescription="Silent Hill Downpour Title Screen" />
+        android:contentDescription="Dante's Inferno Title Screen" />
 
     <!-- Atmospheric Dark Vignette Overlay for High Contrast -->
     <View

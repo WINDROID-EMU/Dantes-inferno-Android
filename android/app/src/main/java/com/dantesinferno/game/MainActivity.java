@@ -40,6 +40,7 @@ public class MainActivity extends SDLActivity {
     public static native void setGameRootEnv(String path);
     public static native void nativeOnIsoPicked(String path);
     public static native void nativeSetDriverConfig(String driverDir, String driverName, String hookLibDir, boolean useTurnip, boolean enableTurbo, boolean disableDebug);
+    public static native void nativeSetGraphicsConfig(int resScale, boolean vsync, String presentEffect, boolean asyncShaders, int pipelineThreads, int presentMode);
 
     @Override
     protected String[] getLibraries() {
@@ -143,7 +144,22 @@ public class MainActivity extends SDLActivity {
             GameConfigManager.markTurnipLaunchInProgress(this, false);
             nativeSetDriverConfig("", "", hookLibDir, false, false, disableDebug);
         }
+
+        // Apply graphics, upscaler, and Vulkan settings
+        GameConfigManager.saveTomlConfig(this);
+        int resScale = GameConfigManager.getResolutionScaleValue(this);
+        boolean vsync = GameConfigManager.isVsyncEnabled(this);
+        String presentEffect = GameConfigManager.getPresentEffectString(this);
+        boolean asyncShaders = GameConfigManager.isAsyncShadersEnabled(this);
+        int pipelineThreads = GameConfigManager.getPipelineThreadsValue(this);
+        int presentMode = GameConfigManager.getVulkanPresentModeIdx(this);
+
+        Log.i(TAG, String.format("Applying graphics config: resScale=%d, vsync=%b, effect=%s, asyncShaders=%b, threads=%d, presentMode=%d",
+            resScale, vsync, presentEffect, asyncShaders, pipelineThreads, presentMode));
+
+        nativeSetGraphicsConfig(resScale, vsync, presentEffect, asyncShaders, pipelineThreads, presentMode);
     }
+
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
