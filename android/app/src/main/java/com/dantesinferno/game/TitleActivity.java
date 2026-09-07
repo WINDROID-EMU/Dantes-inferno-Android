@@ -1,14 +1,17 @@
 package com.dantesinferno.game;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.OpenableColumns;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
@@ -29,12 +32,14 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 
 public class TitleActivity extends AppCompatActivity {
 
     private static final String TAG = "TitleActivity";
     private static final int REQUEST_CODE_STORAGE = 1001;
-    private static final int REQUEST_CODE_FOLDER = 1002;
+    private static final int REQUEST_CODE_ISO = 1002;
 
     private View contentContainer;
     private View btnStartGame;
@@ -179,12 +184,7 @@ public class TitleActivity extends AppCompatActivity {
         });
 
         if (btnChangeIso != null) {
-            btnChangeIso.setVisibility(View.VISIBLE);
-            btnChangeIso.setText("Selecionar Pasta...");
-            btnChangeIso.setOnClickListener(v -> {
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-                startActivityForResult(intent, REQUEST_CODE_FOLDER);
-            });
+            btnChangeIso.setOnClickListener(v -> launchIsoPicker());
         }
 
         if (chipGpuDriver != null) {
@@ -193,6 +193,8 @@ public class TitleActivity extends AppCompatActivity {
                 startActivity(intent);
             });
         }
+
+        updateUiState();
     }
 
     private void updateUiState() {
@@ -200,14 +202,23 @@ public class TitleActivity extends AppCompatActivity {
 
         if (gameReady) {
             tvStartButton.setText("INICIAR JOGO");
-            tvGameStatus.setText("Dados do Dante's Inferno prontos (" + GameConfigManager.getDefaultXexFile(this).getParent() + ")");
-            tvGameStatus.setTextColor(0xFFC9D1D9);
+            tvGameStatus.setText("Dados do Dante's Inferno prontos para iniciar");
+            tvGameStatus.setTextColor(0xFF7EE787);
             ivStatusIcon.setImageResource(R.drawable.ic_check);
+            ivStatusIcon.setColorFilter(0xFF7EE787);
+            if (btnChangeIso != null) {
+                btnChangeIso.setVisibility(View.VISIBLE);
+                btnChangeIso.setText("Trocar / Reinstalar ISO...");
+            }
         } else {
-            tvStartButton.setText("SELECIONAR DADOS");
-            tvGameStatus.setText("default.xex não encontrado. Toque para selecionar a pasta.");
+            tvStartButton.setText("SELECIONAR ISO E INICIAR");
+            tvGameStatus.setText("Nenhuma ISO carregada (Toque para selecionar a ISO do jogo)");
             tvGameStatus.setTextColor(0xFFFFA657);
             ivStatusIcon.setImageResource(R.drawable.ic_folder);
+            ivStatusIcon.setColorFilter(0xFFFFA657);
+            if (btnChangeIso != null) {
+                btnChangeIso.setVisibility(View.GONE);
+            }
         }
 
         boolean turnip = GameConfigManager.isTurnipEnabled(this);
@@ -225,12 +236,125 @@ public class TitleActivity extends AppCompatActivity {
 
     private void onStartGameClicked() {
         if (!GameConfigManager.isGameInstalled(this)) {
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-            startActivityForResult(intent, REQUEST_CODE_FOLDER);
+            launchIsoPicker();
             return;
         }
 
-        btnStartGame.setEnabled(false);
+        launchGame(null);
+    }
+
+    private void launchIsoPicker() {
+        Toast.makeText(this, "Selecione o arquivo ISO do Dante's Inferno (Xbox 360)", Toast.LENGTH_LONG).show();
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        startActivityForResult(intent, REQUEST_CODE_ISO);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_ISO) {
+            if (resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
+                handlePickedIsoUri(data.getData());
+            } else {
+                Toast.makeText(this, "Seleção de ISO cancelada.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void handlePickedIsoUri(Uri uri) {
+        if (layoutLoading != null) {
+            layoutLoading.setVisibility(View.VISIBLE);
+            if (tvLoadingText != null) {
+                tvLoadingText.setText("Processando imagem ISO selecionada... Aguarde.");
+            }
+        }
+
+        new Thread(() -> {
+            try {
+                String fileName = getFileName(uri);
+                if (fileName == null || fileName.isEmpty()) {
+                    fileName = "dantes_inferno.iso";
+                }
+
+                // If file is directly on disk
+                if ("file".equalsIgnoreCase(uri.getScheme())) {
+                    String path = uri.getPath();
+                    runOnUiThread(() -> {
+                        if (layoutLoading != null) layoutLoading.setVisibility(View.GONE);
+                        launchGame(path);
+                    });
+                    return;
+                }
+
+                // Copy to cache dir
+                File cacheTarget = new File(getCacheDir(), fileName);
+                Log.i(TAG, "Copying ISO content URI to cache: " + cacheTarget.getAbsolutePath());
+
+                runOnUiThread(() -> {
+                    if (tvLoadingText != null) {
+                        tvLoadingText.setText("Copiando " + cacheTarget.getName() + " para o cache do jogo...");
+                    }
+                });
+
+                try (InputStream in = getContentResolver().openInputStream(uri);
+                     FileOutputStream out = new FileOutputStream(cacheTarget)) {
+                    if (in == null) {
+                        runOnUiThread(() -> {
+                            if (layoutLoading != null) layoutLoading.setVisibility(View.GONE);
+                            Toast.makeText(this, "Erro ao abrir o arquivo ISO selecionado.", Toast.LENGTH_LONG).show();
+                        });
+                        return;
+                    }
+                    byte[] buffer = new byte[1024 * 1024]; // 1MB buffer
+                    int read;
+                    long totalBytes = 0;
+                    long lastUpdate = System.currentTimeMillis();
+                    while ((read = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, read);
+                        totalBytes += read;
+                        long now = System.currentTimeMillis();
+                        if (now - lastUpdate > 500) {
+                            lastUpdate = now;
+                            final long mb = totalBytes / (1024 * 1024);
+                            runOnUiThread(() -> {
+                                if (tvLoadingText != null) {
+                                    tvLoadingText.setText("Copiando ISO (" + mb + " MB transferidos)...");
+                                }
+                            });
+                        }
+                    }
+                    out.flush();
+                }
+
+                String resolvedPath = cacheTarget.getAbsolutePath();
+                runOnUiThread(() -> {
+                    if (layoutLoading != null) layoutLoading.setVisibility(View.GONE);
+                    Toast.makeText(this, "ISO carregada com sucesso! Extraindo dados...", Toast.LENGTH_SHORT).show();
+                    launchGame(resolvedPath);
+                });
+
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to resolve ISO file: " + e.getMessage(), e);
+                runOnUiThread(() -> {
+                    if (layoutLoading != null) layoutLoading.setVisibility(View.GONE);
+                    Toast.makeText(this, "Falha ao processar arquivo ISO: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+
+    private void launchGame(final String isoPath) {
+        if (btnStartGame != null) {
+            btnStartGame.setEnabled(false);
+        }
+        if (btnSettings != null) {
+            btnSettings.setEnabled(false);
+        }
+
+        boolean turnipRequested = GameConfigManager.isTurnipEnabled(this);
+        GameConfigManager.markTurnipLaunchInProgress(this, turnipRequested);
 
         if (fadeOverlay != null) {
             fadeOverlay.setVisibility(View.VISIBLE);
@@ -238,16 +362,45 @@ public class TitleActivity extends AppCompatActivity {
             fadeOverlay.animate()
                 .alpha(1f)
                 .setDuration(400)
-                .withEndAction(this::launchGame)
+                .withEndAction(() -> {
+                    Intent intent = new Intent(TitleActivity.this, MainActivity.class);
+                    if (isoPath != null && !isoPath.isEmpty()) {
+                        intent.putExtra(GameConfigManager.EXTRA_ISO_PATH, isoPath);
+                    }
+                    startActivity(intent);
+                })
                 .start();
         } else {
-            launchGame();
+            Intent intent = new Intent(TitleActivity.this, MainActivity.class);
+            if (isoPath != null && !isoPath.isEmpty()) {
+                intent.putExtra(GameConfigManager.EXTRA_ISO_PATH, isoPath);
+            }
+            startActivity(intent);
         }
     }
 
-    private void launchGame() {
-        Intent intent = new Intent(TitleActivity.this, MainActivity.class);
-        startActivity(intent);
+    private String getFileName(Uri uri) {
+        String result = null;
+        if (uri.getScheme() != null && uri.getScheme().equals("content")) {
+            try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (index >= 0) {
+                        result = cursor.getString(index);
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        if (result == null) {
+            result = uri.getPath();
+            if (result != null) {
+                int cut = result.lastIndexOf('/');
+                if (cut != -1) {
+                    result = result.substring(cut + 1);
+                }
+            }
+        }
+        return result;
     }
 
     private void checkStoragePermissions() {
@@ -255,7 +408,7 @@ public class TitleActivity extends AppCompatActivity {
             if (!Environment.isExternalStorageManager()) {
                 new AlertDialog.Builder(this)
                     .setTitle("Acesso aos Arquivos do Jogo")
-                    .setMessage("O Dante's Inferno precisa de acesso aos arquivos para ler a ISO extraída (~7.8GB) contendo default.xex.")
+                    .setMessage("O Dante's Inferno precisa de acesso aos arquivos para ler o arquivo ISO e extrair o conteúdo do jogo.")
                     .setPositiveButton("Conceder", (dialog, which) -> {
                         try {
                             Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
@@ -275,24 +428,6 @@ public class TitleActivity extends AppCompatActivity {
                     new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     REQUEST_CODE_STORAGE
                 );
-            }
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_FOLDER && resultCode == RESULT_OK && data != null) {
-            Uri treeUri = data.getData();
-            if (treeUri != null) {
-                String path = treeUri.getPath();
-                if (path != null) {
-                    getSharedPreferences(GameConfigManager.PREF_NAME, MODE_PRIVATE)
-                        .edit()
-                        .putString(GameConfigManager.PREF_CUSTOM_GAME_PATH, path)
-                        .apply();
-                }
-                updateUiState();
             }
         }
     }

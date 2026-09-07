@@ -108,3 +108,14 @@ launcher/installer.iss
 
 # --- Test launcher dir ---
 test-launcher/
+
+# --- Android build output ---
+.cxx/
+.gradle/
+**/build/
+**/.cxx/
+**/.gradle/
+**/local.properties
+
+# --- Binary tools ---
+tools/bin/

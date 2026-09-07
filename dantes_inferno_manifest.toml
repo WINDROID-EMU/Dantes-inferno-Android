@@ -6,7 +6,7 @@ game_root = "game"
 [entrypoint]
 file_path = "game/default.xex"
 out_directory_path = "generated/default"
-includes = []
+includes = ["dantes_inferno_hooks.h"]
 
 [[midasm_hook]]
 address = 0x8251DC88

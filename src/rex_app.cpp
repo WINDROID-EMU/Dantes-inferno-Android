@@ -853,12 +853,22 @@ void ReXApp::LaunchModule() {
 
     OnPreLaunchModule();
 
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "DantesLaunch", "Calling runtime_->PrepareModuleLaunch()...");
+#endif
     auto main_thread = runtime_->PrepareModuleLaunch();
     if (!main_thread) {
+#if defined(__ANDROID__)
+      __android_log_print(ANDROID_LOG_ERROR, "DantesLaunch", "PrepareModuleLaunch FAILED (null main_thread)");
+#endif
       REXLOG_ERROR("Failed to launch module");
       app_context().QuitFromUIThread();
       return;
     }
+
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "DantesLaunch", "PrepareModuleLaunch succeeded! Thread=%p. Resuming main_thread...", main_thread.get());
+#endif
 
     auto* graphics_system = runtime_->graphics_system();
     if (graphics_system && !runtime_->cache_root().empty()) {
@@ -873,8 +883,14 @@ void ReXApp::LaunchModule() {
     main_thread->Resume();
 
     module_thread_ = std::thread([this, main_thread = std::move(main_thread)]() mutable {
+#if defined(__ANDROID__)
+      __android_log_print(ANDROID_LOG_INFO, "DantesLaunch", "module_thread_ waiting for guest thread...");
+#endif
       main_thread->Wait(0, 0, 0, nullptr);
       OnGuestThreadExit(main_thread.get());
+#if defined(__ANDROID__)
+      __android_log_print(ANDROID_LOG_INFO, "DantesLaunch", "Guest thread exited! Requesting QuitFromUIThread...");
+#endif
       REXLOG_INFO("Execution complete");
       if (!shutting_down_.load(std::memory_order_acquire)) {
         app_context().CallInUIThread([this]() { app_context().QuitFromUIThread(); });
@@ -981,7 +997,11 @@ void ReXApp::OnDestroy() {
   debug_overlay_.reset();
   if (imgui_drawer_) {
     imgui_drawer_->SetPresenterAndImmediateDrawer(nullptr, nullptr);
+#if defined(__ANDROID__)
+    imgui_drawer_.release();
+#else
     imgui_drawer_.reset();
+#endif
   }
   // immediate_drawer_ was already unlinked from imgui_drawer_ above. Detach it
   // from its presenter so SDK mode runs OnLeavePresenter() before disposal; in
@@ -989,7 +1009,14 @@ void ReXApp::OnDestroy() {
   // a no-op.
   if (immediate_drawer_) {
     immediate_drawer_->SetPresenter(nullptr);
+#if defined(__ANDROID__)
+    // On Android, VulkanImmediateDrawer resources are tied to the Vulkan driver / Scudo
+    // heap allocations across shared libraries. Freeing here triggers Scudo "invalid chunk state"
+    // abort during shutdown. Let OS process reclamation handle it.
+    immediate_drawer_.release();
+#else
     immediate_drawer_.reset();
+#endif
   }
   if (runtime_) {
     runtime_->set_display_window(nullptr);
@@ -1006,8 +1033,8 @@ void ReXApp::OnDestroy() {
     window_->RemoveInputListener(this);
     window_->RemoveListener(this);
   }
-  window_.reset();
   runtime_.reset();
+  window_.reset();
 }
 
 void ReXApp::SetGuestFrameStats(ui::DebugOverlayDialog::FrameStatsProvider provider) {

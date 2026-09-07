@@ -16,6 +16,10 @@
 #include <cstring>
 #include <cstdlib>
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 #include "dantes_inferno_hooks.h"
 
 REXCVAR_DEFINE_DOUBLE(time_scalar, 1.0, "Gameplay",
@@ -119,6 +123,7 @@ class FpsOverlayDialog : public rex::ui::ImGuiDialog {
 
 #include "touch_overlay.h"
 #include "dantes_driver.h"
+#include "dantes_iso_installer.h"
 
 class DantesInfernoApp : public rex::ReXApp {
  public:
@@ -131,40 +136,140 @@ class DantesInfernoApp : public rex::ReXApp {
   }
 
   void OnConfigurePaths(rex::PathConfig& paths) override {
-    if (!paths.game_data_root.empty())
-      return;
+    if (paths.game_data_root.empty()) {
+      // Check environment override (e.g. passed from Android Activity/JNI)
+      if (const char* env_root = std::getenv("DANTES_GAME_ROOT")) {
+        std::filesystem::path p(env_root);
+        std::error_code ec;
+        if (std::filesystem::is_directory(p, ec)) {
+          paths.game_data_root = p;
+          REXLOG_INFO("PATHS: Found game_data_root via DANTES_GAME_ROOT: {}", p.string());
+        } else if (!p.empty()) {
+          paths.game_data_root = p;
+        }
+      }
 
-    // Check environment override (e.g. passed from Android Activity/JNI)
-    if (const char* env_root = std::getenv("DANTES_GAME_ROOT")) {
-      std::filesystem::path p(env_root);
-      std::error_code ec;
-      if (std::filesystem::is_directory(p, ec)) {
-        paths.game_data_root = p;
-        REXLOG_INFO("PATHS: Found game_data_root via DANTES_GAME_ROOT: {}", p.string());
-        return;
+      if (paths.game_data_root.empty()) {
+        const std::filesystem::path candidates[] = {
+            // Standard PC candidates
+            rex::filesystem::GetExecutableFolder() / "game",
+            std::filesystem::current_path() / "game",
+            // Android storage candidates
+            std::filesystem::path("/sdcard/DantesInferno/game"),
+            std::filesystem::path("/sdcard/DantesInferno"),
+            std::filesystem::path("/storage/emulated/0/DantesInferno/game"),
+            std::filesystem::path("/storage/emulated/0/DantesInferno"),
+            std::filesystem::path("/sdcard/Android/data/com.dantesinferno.game/files/game"),
+            std::filesystem::path("/data/data/com.dantesinferno.game/files/game"),
+        };
+        for (const auto& candidate : candidates) {
+          std::error_code ec;
+          if (std::filesystem::is_directory(candidate, ec)) {
+            paths.game_data_root = candidate;
+            REXLOG_INFO("PATHS: Selected game_data_root: {}", candidate.string());
+            break;
+          }
+        }
+      }
+
+      if (paths.game_data_root.empty()) {
+        // Default target path if not yet created (for first-run ISO extraction)
+#if defined(__ANDROID__)
+        paths.game_data_root = "/storage/emulated/0/Android/data/com.dantesinferno.game/files/game";
+#else
+        paths.game_data_root = rex::filesystem::GetExecutableFolder() / "game";
+#endif
+        REXLOG_INFO("PATHS: Defaulted initial game_data_root to: {}", paths.game_data_root.string());
       }
     }
 
-    const std::filesystem::path candidates[] = {
-        // Standard PC candidates
-        rex::filesystem::GetExecutableFolder() / "game",
-        std::filesystem::current_path() / "game",
-        // Android storage candidates
-        std::filesystem::path("/sdcard/DantesInferno/game"),
-        std::filesystem::path("/sdcard/DantesInferno"),
-        std::filesystem::path("/storage/emulated/0/DantesInferno/game"),
-        std::filesystem::path("/storage/emulated/0/DantesInferno"),
-        std::filesystem::path("/sdcard/Android/data/com.dantesinferno.game/files/game"),
-        std::filesystem::path("/data/data/com.dantesinferno.game/files/game"),
-    };
-    for (const auto& candidate : candidates) {
+#if defined(__ANDROID__)
+    // Ensure user_data_root and cache_root point to writable Android directories.
+    // Without this, the SDK falls back to GetUserFolder() which resolves to /data
+    // on Android (no $HOME set), creating "/data/.local" → Permission denied crash.
+    if (paths.user_data_root.empty()) {
+      std::filesystem::path ext_base("/storage/emulated/0/Android/data/com.dantesinferno.game/files");
+      if (const char* env_root = std::getenv("DANTES_GAME_ROOT")) {
+        std::filesystem::path p(env_root);
+        // DANTES_GAME_ROOT points to .../files/game, go up to .../files
+        if (p.filename() == "game") {
+          ext_base = p.parent_path();
+        } else {
+          ext_base = p;
+        }
+      }
+      paths.user_data_root = ext_base / "user_data";
       std::error_code ec;
-      if (std::filesystem::is_directory(candidate, ec)) {
-        paths.game_data_root = candidate;
-        REXLOG_INFO("PATHS: Selected game_data_root: {}", candidate.string());
-        return;
+      std::filesystem::create_directories(paths.user_data_root, ec);
+      REXLOG_INFO("PATHS: Android user_data_root set to: {}", paths.user_data_root.string());
+    }
+    if (paths.cache_root.empty()) {
+      paths.cache_root = paths.user_data_root.parent_path() / "cache";
+      std::error_code ec;
+      std::filesystem::create_directories(paths.cache_root, ec);
+      REXLOG_INFO("PATHS: Android cache_root set to: {}", paths.cache_root.string());
+    }
+#endif
+  }
+
+  std::optional<rex::PathConfig> OnFinalizePaths(
+      const rex::PathConfig& defaults,
+      std::function<void(rex::PathConfig)> resume) override {
+    rex::PathConfig runtime_paths = defaults;
+    const auto& game_root = runtime_paths.game_data_root;
+
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "DantesApp",
+                        "OnFinalizePaths: game_root='%s', is_installed=%d",
+                        game_root.string().c_str(),
+                        dantes::IsGameDataInstalled(game_root) ? 1 : 0);
+#endif
+
+    if (!dantes::IsGameDataInstalled(game_root)) {
+      if (const char* iso = std::getenv("DANTES_INSTALL_ISO");
+          iso != nullptr && *iso != '\0') {
+        std::string error;
+#if defined(__ANDROID__)
+        __android_log_print(ANDROID_LOG_INFO, "DantesApp",
+                            "Attempting automatic install from DANTES_INSTALL_ISO='%s' to '%s'",
+                            iso, game_root.string().c_str());
+#endif
+        REXLOG_INFO("Installing game data from DANTES_INSTALL_ISO={}", iso);
+        if (!dantes::InstallGameDataFromIso(iso, game_root, nullptr, nullptr, error)) {
+#if defined(__ANDROID__)
+          __android_log_print(ANDROID_LOG_ERROR, "DantesApp",
+                              "Automated game data installation failed: %s", error.c_str());
+#endif
+          REXLOG_ERROR("Automated game data installation failed: {}", error);
+        } else {
+#if defined(__ANDROID__)
+          __android_log_print(ANDROID_LOG_INFO, "DantesApp",
+                              "Automated game data installation succeeded!");
+#endif
+        }
       }
     }
+
+    if (!dantes::IsGameDataInstalled(game_root)) {
+#if defined(__ANDROID__)
+      __android_log_print(ANDROID_LOG_WARN, "DantesApp",
+                          "Game data still not installed at '%s'; launching disc image wizard",
+                          game_root.string().c_str());
+#endif
+      REXLOG_INFO(
+          "Dante's Inferno game data not found at {}; launching the "
+          "disc image installer.",
+          game_root.string());
+      dantes::ShowIsoInstallWizard(imgui_drawer(), std::move(runtime_paths),
+                                   std::move(resume));
+      return std::nullopt;
+    }
+
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "DantesApp",
+                        "OnFinalizePaths returning valid runtime_paths! Game is ready to launch.");
+#endif
+    return runtime_paths;
   }
 
   void OnPreSetup(rex::RuntimeConfig& config) override {
@@ -174,7 +279,8 @@ class DantesInfernoApp : public rex::ReXApp {
 
 #if defined(__ANDROID__)
     // Mobile-specific defaults & AdrenoTools Turnip driver initialization
-    rex::cvar::SetFlagByName("show_touch_controls", "true");
+    // Disable SDK's ImGui touch controls because we use the native Android virtual controller
+    rex::cvar::SetFlagByName("show_touch_controls", "false");
     rex::cvar::SetFlagByName("mnk_mode", "false");
     dantes::driver::InitializeDriver();
     dantes::driver::LogTextureCompressionSupport();

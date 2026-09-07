@@ -38,6 +38,7 @@ public class MainActivity extends SDLActivity {
 
     // Native JNI bridge
     public static native void setGameRootEnv(String path);
+    public static native void nativeOnIsoPicked(String path);
     public static native void nativeSetDriverConfig(String driverDir, String driverName, String hookLibDir, boolean useTurnip, boolean enableTurbo, boolean disableDebug);
 
     @Override
@@ -95,6 +96,13 @@ public class MainActivity extends SDLActivity {
 
         // Configure AdrenoTools Turnip / System GPU Driver
         initDriverConfiguration();
+
+        // Consume ISO if passed from TitleActivity
+        String extraIso = getIntent().getStringExtra(GameConfigManager.EXTRA_ISO_PATH);
+        if (extraIso != null && !extraIso.isEmpty()) {
+            Log.i(TAG, "Consuming pending ISO from Intent extra: " + extraIso);
+            nativeOnIsoPicked(extraIso);
+        }
 
         // Check storage permissions and locate game files
         checkStoragePermissions();
@@ -242,9 +250,14 @@ public class MainActivity extends SDLActivity {
             }
         }
 
+        String extraIso = getIntent().getStringExtra(GameConfigManager.EXTRA_ISO_PATH);
         if (foundDir != null) {
             Log.i(TAG, "Found game data directory: " + foundDir.getAbsolutePath());
             setGameRootEnv(foundDir.getAbsolutePath());
+        } else if (extraIso != null && !extraIso.isEmpty()) {
+            File targetDir = new File(getExternalFilesDir(null), "game");
+            Log.i(TAG, "No extracted game data yet; setting target game root for ISO installer: " + targetDir.getAbsolutePath());
+            setGameRootEnv(targetDir.getAbsolutePath());
         } else {
             promptSelectGameDirectory();
         }
@@ -261,6 +274,12 @@ public class MainActivity extends SDLActivity {
             .setNegativeButton("Continuar", null)
             .setCancelable(false)
             .show();
+    }
+
+    @Override
+    public void setRequestedOrientation(int requestedOrientation) {
+        // Enforce sensor landscape and prevent SDL from triggering orientation changes or activity recreation
+        super.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
     }
 
     @Override

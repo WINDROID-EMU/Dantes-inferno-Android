@@ -1,4 +1,5 @@
 #include <SDL3/SDL_main.h>
+#include <SDL3/SDL_hints.h>
 
 #include <algorithm>
 #include <cstdlib>
@@ -23,7 +24,7 @@
 
 #if defined(__ANDROID__)
 #include <android/log.h>
-#define MAIN_LOGI(...) do { if (!dantes::driver::GetDriverConfig().disable_debug) __android_log_print(ANDROID_LOG_INFO, "DantesMain", __VA_ARGS__); } while(0)
+#define MAIN_LOGI(...) __android_log_print(ANDROID_LOG_INFO, "DantesMain", __VA_ARGS__)
 #define MAIN_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "DantesMain", __VA_ARGS__)
 #else
 #define MAIN_LOGI(...)
@@ -55,6 +56,31 @@ int RunWindowedApp(int argc, char** argv) {
   const char* env_root = std::getenv("DANTES_GAME_ROOT");
   std::filesystem::path ext = env_root ? std::filesystem::path(env_root) : std::filesystem::path("/storage/emulated/0/Android/data/com.dantesinferno.game/files");
 
+#if defined(__ANDROID__)
+  // Set user_data_root and cache_root to writable Android app directories.
+  // Without this, the SDK's SetupEnvironment() calls GetUserFolder() which
+  // resolves to /data on Android (no $HOME), then tries to create
+  // "/data/.local" → Permission denied → fatal crash in the GPU thread.
+  //
+  // DANTES_GAME_ROOT typically points to .../files/game — we need the parent
+  // (.../files) so user_data/ and cache/ are siblings of game/, not inside it.
+  {
+    std::filesystem::path ext_base = ext;
+    if (ext_base.filename() == "game") {
+      ext_base = ext_base.parent_path();
+    }
+    auto user_data = ext_base / "user_data";
+    auto cache_data = ext_base / "cache";
+    std::error_code ec;
+    std::filesystem::create_directories(user_data, ec);
+    std::filesystem::create_directories(cache_data, ec);
+    rex::cvar::SetFlagByName("user_data_root", user_data.string());
+    rex::cvar::SetFlagByName("cache_root", cache_data.string());
+    MAIN_LOGI("Set user_data_root=%s", user_data.string().c_str());
+    MAIN_LOGI("Set cache_root=%s", cache_data.string().c_str());
+  }
+#endif
+
   bool disable_debug = dantes::driver::GetDriverConfig().disable_debug;
 
   if (!ext.empty()) {
@@ -84,13 +110,16 @@ int RunWindowedApp(int argc, char** argv) {
 
   rex::InitLoggingEarly();
 
-#if defined(__ANDROID__)
-  dantes::driver::InitializeDriver();
-  dantes::driver::LogTextureCompressionSupport();
-#endif
+  // NOTE: InitializeDriver() and LogTextureCompressionSupport() are called
+  // in DantesInfernoApp::OnPreSetup — do NOT call them here as well.
 
   int result = EXIT_FAILURE;
   {
+#if defined(__ANDROID__)
+    // Force SDL to respect the landscape orientation. Without this, SDL3
+    // might override the AndroidManifest setting and switch to portrait (requestedOrientation=13).
+    SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+#endif
     MAIN_LOGI("Initializing SDLWindowedAppContext...");
     rex::ui::SDLWindowedAppContext app_context;
     if (!app_context.Initialize()) {
@@ -114,6 +143,7 @@ int RunWindowedApp(int argc, char** argv) {
     MAIN_LOGI("app->OnInitialize() returned: %s", init_ok ? "SUCCESS" : "FAILED");
 
     result = init_ok ? app_context.RunMainMessageLoop() : EXIT_FAILURE;
+    MAIN_LOGI("RunMainMessageLoop() exited with code: %d. Beginning teardown...", result);
 
     app->InvokeOnDestroy();
 #if defined(__ANDROID__)
@@ -133,3 +163,33 @@ int RunWindowedApp(int argc, char** argv) {
 extern "C" SDLMAIN_DECLSPEC int SDLCALL SDL_main(int argc, char* argv[]) {
   return RunWindowedApp(argc, argv);
 }
+
+#if defined(__ANDROID__)
+#include <jni.h>
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_dantesinferno_game_MainActivity_setGameRootEnv(JNIEnv* env, jobject /* thiz */, jstring path) {
+  if (!path) return;
+  const char* native_str = env->GetStringUTFChars(path, nullptr);
+  if (native_str) {
+    setenv("DANTES_GAME_ROOT", native_str, 1);
+    MAIN_LOGI("JNI: setenv DANTES_GAME_ROOT=%s", native_str);
+    env->ReleaseStringUTFChars(path, native_str);
+  }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_dantesinferno_game_MainActivity_nativeOnIsoPicked(JNIEnv* env, jobject /* thiz */, jstring path) {
+  if (!path) {
+    dantes::android::SetPendingIsoPath("");
+    return;
+  }
+  const char* native_str = env->GetStringUTFChars(path, nullptr);
+  if (native_str) {
+    setenv("DANTES_INSTALL_ISO", native_str, 1);
+    dantes::android::SetPendingIsoPath(native_str);
+    MAIN_LOGI("JNI: setenv DANTES_INSTALL_ISO=%s", native_str);
+    env->ReleaseStringUTFChars(path, native_str);
+  }
+}
+#endif

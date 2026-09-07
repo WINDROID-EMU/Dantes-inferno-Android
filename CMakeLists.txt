@@ -38,6 +38,7 @@ endif()
 
 set(DANTESINFERNO_SOURCES
     src/main.cpp
+    src/dantes_iso_installer.cpp
 )
 
 if(ANDROID)
@@ -55,6 +56,7 @@ if(ANDROID)
     set(DANTES_ANDROID_SOURCES
         src/dantes_driver.cpp
         src/dantes_main_android.cpp
+        src/dantes_iso_installer.cpp
         src/rex_app.cpp
         ${GENERATED_SOURCES}
     )
