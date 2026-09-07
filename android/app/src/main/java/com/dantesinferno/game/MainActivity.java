@@ -50,11 +50,13 @@ public class MainActivity extends SDLActivity {
 
     @Override
     protected String[] getLibraries() {
+        // Only the RelWithDebInfo ("rd") variants of the SDK prebuilts are shipped.
+        // "librexruntime.so" and "librexgpu-xenos.so" do NOT exist in the APK;
+        // attempting to dlopen them poisons the JNI resolver and causes
+        // nativeSetDriverConfig / nativeSetGraphicsConfig to be unresolvable.
         return new String[] {
             "c++_shared",
-            "rexruntime",
             "rexruntimerd",
-            "rexgpu-xenos",
             "rexgpu-xenosrd",
             "dantes_inferno"
         };
