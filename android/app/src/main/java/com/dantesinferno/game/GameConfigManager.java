@@ -233,9 +233,8 @@ public class GameConfigManager {
 
     public static boolean isA6xxCompatEnabled(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        if (!prefs.contains(PREF_A6XX_COMPAT)) {
-            return isAdreno6xxHardware();
-        }
+        // Default to false: modern Turnip drivers (T30+, Kimchi R18) have full GMEM tiling support on Adreno 650.
+        // Forcing sysmem breaks FBO framebuffer resolves and causes a black screen.
         return prefs.getBoolean(PREF_A6XX_COMPAT, false);
     }
 

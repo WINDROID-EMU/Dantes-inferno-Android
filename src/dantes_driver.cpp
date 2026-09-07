@@ -191,10 +191,8 @@ void SetDriverConfig(const DriverConfig& config) {
        config.use_turnip, config.driver_dir.c_str(), config.driver_name.c_str(), config.enable_turbo, config.a6xx_compat);
 
   if (config.a6xx_compat) {
-    setenv("TU_DEBUG", "sysmem,nolrz,noubwc", 1);
-    setenv("MESA_VK_WSI_FORCE_BGRA8_UNORM_FIRST", "0", 1);
-    setenv("WRAPPER_BLIT", "1", 1);
-    LOGI("SetDriverConfig: Early A6xx compat environment active: TU_DEBUG=sysmem,nolrz,noubwc");
+    setenv("TU_DEBUG", "noubwc,nolrz", 1);
+    LOGI("SetDriverConfig: Early A6xx compat environment active: TU_DEBUG=noubwc,nolrz");
   }
 }
 
@@ -248,17 +246,12 @@ bool InitializeDriver() {
   setenv("MESA_DISK_CACHE_SINGLE_FILE", "1", 1);
   LOGI("Mesa shader disk cache configured at: %s", cache_dir.c_str());
 
-  // Handle Adreno 6xx compatibility (disable GMEM tiling, LRZ, and UBWC compression)
-  // CRITICAL: MUST be set BEFORE dlopening the driver so Mesa constructors read the environment.
   if (g_driver_config.a6xx_compat) {
-    // sysmem: Forces rendering to system memory instead of GPU internal tile buffer (GMEM).
-    //         Fixes black screen rendering bugs on Adreno 650/660 in Mesa Turnip.
     // nolrz: Disables Low Resolution Z (avoids false depth-test discards).
     // noubwc: Disables Universal Bandwidth Compression (avoids WSI/AHB framebuffer glitches).
-    setenv("TU_DEBUG", "sysmem,nolrz,noubwc", 1);
-    setenv("MESA_VK_WSI_FORCE_BGRA8_UNORM_FIRST", "0", 1);
-    setenv("WRAPPER_BLIT", "1", 1);
-    LOGI("A6xx Compatibility Mode ACTIVE: TU_DEBUG=sysmem,nolrz,noubwc applied BEFORE driver dlopen!");
+    // Note: Do NOT force sysmem! FBO renderpasses in Xenia/ReXGlue require GMEM tiling to resolve color buffers.
+    setenv("TU_DEBUG", "noubwc,nolrz", 1);
+    LOGI("A6xx Compatibility Mode ACTIVE: TU_DEBUG=noubwc,nolrz applied BEFORE driver dlopen!");
   }
 
   void* handle = adrenotools_open_libvulkan(

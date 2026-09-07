@@ -85,6 +85,8 @@ public class MainActivity extends SDLActivity {
             lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
             getWindow().setAttributes(lp);
         }
+        // Pin display mode to 60 Hz before window creation to prevent surface tear / recreation mid-boot
+        selectSixtyHertzDisplayMode();
 
         super.onCreate(savedInstanceState);
 
@@ -111,9 +113,6 @@ public class MainActivity extends SDLActivity {
             getWindow().setPreferMinimalPostProcessing(true);
         }
 
-        // Pin display mode to 60 Hz to prevent frame judder on 90Hz/120Hz/144Hz displays
-        selectSixtyHertzDisplayMode();
-
         // Configure AdrenoTools Turnip / System GPU Driver
         initDriverConfiguration();
 
@@ -132,15 +131,13 @@ public class MainActivity extends SDLActivity {
     }
 
     private void initDriverConfiguration() {
-        GameConfigManager.ensureDriverPreferencesMigrated(this);
-
-        SharedPreferences prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
-        boolean useTurnip = prefs.getBoolean(GameConfigManager.PREF_USE_TURNIP, false);
-        boolean turbo = prefs.getBoolean(GameConfigManager.PREF_TURBO, true);
-        String driverName = prefs.getString(GameConfigManager.PREF_DRIVER_NAME, "vulkan.adreno.so");
-
-        File customDriverDir = new File(getFilesDir(), "custom_driver");
+        File customDriverDir = GameConfigManager.getCustomDriverDir(this);
         String hookLibDir = getApplicationInfo().nativeLibraryDir;
+        SharedPreferences prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+
+        boolean useTurnip = prefs.getBoolean(GameConfigManager.PREF_USE_TURNIP, false);
+        boolean turbo = prefs.getBoolean("enable_turbo", true);
+        String driverName = GameConfigManager.getDriverName(this);
 
         File driverFile = new File(customDriverDir, driverName);
         if ((!driverFile.exists() || (GameConfigManager.isA6xxCompatEnabled(this) && driverName.contains("07"))) && customDriverDir.exists()) {
@@ -158,10 +155,9 @@ public class MainActivity extends SDLActivity {
 
         if (a6xxCompat) {
             try {
-                android.system.Os.setenv("TU_DEBUG", "sysmem,nolrz,noubwc", true);
-                android.system.Os.setenv("MESA_VK_WSI_FORCE_BGRA8_UNORM_FIRST", "0", true);
-                android.system.Os.setenv("WRAPPER_BLIT", "1", true);
-                Log.i(TAG, "Early Os.setenv applied: TU_DEBUG=sysmem,nolrz,noubwc, WRAPPER_BLIT=1");
+                // Keep GMEM tiling active for FBO attachment resolves; do not force sysmem.
+                android.system.Os.setenv("TU_DEBUG", "noubwc,nolrz", true);
+                Log.i(TAG, "Early Os.setenv applied: TU_DEBUG=noubwc,nolrz");
             } catch (Throwable t) {
                 Log.w(TAG, "Failed to apply Os.setenv: " + t.getMessage());
             }
