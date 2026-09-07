@@ -141,12 +141,22 @@ public final class AppUpdater {
             throw new IOException("Nenhuma release com APK do Android foi encontrada no repositório.");
         }
 
-        // Compare installed version vs found release
+        // Compare installed version vs found release.
+        // Use versionCode (integer, set by CI to github.run_number) as the primary
+        // comparison when it is meaningful (> 1). Fall back to semver string comparison.
         PackageManager pm = context.getPackageManager();
         PackageInfo pInfo = pm.getPackageInfo(context.getPackageName(), 0);
         String installedVersionName = pInfo.versionName != null ? pInfo.versionName : "1.0.0";
+        int installedVersionCode = pInfo.versionCode; // set by CI as run_number
 
-        boolean newer = isNewerVersion(foundRelease.tagName, installedVersionName);
+        int releaseRunNumber = extractBuildNumber(foundRelease.tagName);
+        boolean newer;
+        if (installedVersionCode > 1 && releaseRunNumber > 0) {
+            // Both sides carry a meaningful build number: compare directly.
+            newer = releaseRunNumber > installedVersionCode;
+        } else {
+            newer = isNewerVersion(foundRelease.tagName, installedVersionName);
+        }
         return new CheckResult(foundRelease, newer, installedVersionName);
     }
 
@@ -173,14 +183,18 @@ public final class AppUpdater {
             if (t < c) return false;
         }
 
-        // If semver is equal (e.g. 1.0.0 vs 1.0.0-build.2):
+        // Semver bases are equal (e.g. tag=1.0.0-build.42, installed=1.0.0).
+        // If the installed version has NO build suffix, the user installed a
+        // stable/manual APK for this semver — treat it as already up to date.
+        // Only flag as newer when the installed version ALSO carries a build
+        // suffix that is strictly lower (e.g. build.3 < build.42).
         int tagBuild = extractBuildNumber(cleanTag);
         int currBuild = extractBuildNumber(cleanCurrent);
-        if (tagBuild > currBuild) {
-            return true;
+        if (currBuild == 0) {
+            // No build suffix on installed version: consider equal, not outdated.
+            return false;
         }
-
-        return false;
+        return tagBuild > currBuild;
     }
 
     private static int parseNumber(String s) {

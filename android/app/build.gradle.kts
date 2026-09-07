@@ -12,7 +12,9 @@ android {
         applicationId = "com.dantesinferno.game"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
+        // versionCode is injected by CI as github.run_number via -PversionCode=<N>.
+        // Local/manual builds get versionCode=1 as a safe default.
+        versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
         versionName = "1.0.0"
 
         ndk {
