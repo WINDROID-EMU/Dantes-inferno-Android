@@ -22816,14 +22816,7 @@ loc_825A322C:
 	// vcfpuxws128 v61,v12,0
 	simde_mm_store_si128((simde__m128i*)ctx.v61.u32, rex::ppc::simde_mm_vctuxs(simde_mm_load_ps(ctx.v12.f32)));
 	// vpkuwus128 v62,v62,v61
-	ctx.v62.u16[7] = ctx.v62.u32[3] > 0xFFFF ? 0xFFFF : (uint16_t)ctx.v62.u32[3];
-	ctx.v62.u16[3] = ctx.v61.u32[3] > 0xFFFF ? 0xFFFF : (uint16_t)ctx.v61.u32[3];
-	ctx.v62.u16[6] = ctx.v62.u32[2] > 0xFFFF ? 0xFFFF : (uint16_t)ctx.v62.u32[2];
-	ctx.v62.u16[2] = ctx.v61.u32[2] > 0xFFFF ? 0xFFFF : (uint16_t)ctx.v61.u32[2];
-	ctx.v62.u16[5] = ctx.v62.u32[1] > 0xFFFF ? 0xFFFF : (uint16_t)ctx.v62.u32[1];
-	ctx.v62.u16[1] = ctx.v61.u32[1] > 0xFFFF ? 0xFFFF : (uint16_t)ctx.v61.u32[1];
-	ctx.v62.u16[4] = ctx.v62.u32[0] > 0xFFFF ? 0xFFFF : (uint16_t)ctx.v62.u32[0];
-	ctx.v62.u16[0] = ctx.v61.u32[0] > 0xFFFF ? 0xFFFF : (uint16_t)ctx.v61.u32[0];
+	simde_mm_store_si128((simde__m128i*)ctx.v62.u16, simde_mm_packus_epi32(simde_mm_min_epu32(simde_mm_load_si128((simde__m128i*)ctx.v61.u32), simde_mm_set1_epi32(0xFFFF)), simde_mm_min_epu32(simde_mm_load_si128((simde__m128i*)ctx.v62.u32), simde_mm_set1_epi32(0xFFFF))));
 	// stvx128 v62,r0,r10
 	ea = (ctx.r10.u32) & ~0xF;
 	simde_mm_store_si128((simde__m128i*)REX_RAW_ADDR(ea), simde_mm_shuffle_epi8(simde_mm_load_si128((simde__m128i*)ctx.v62.u8), simde_mm_load_si128((simde__m128i*)VectorMaskL)));

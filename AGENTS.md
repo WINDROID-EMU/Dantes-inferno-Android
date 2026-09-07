@@ -213,6 +213,7 @@ implemented in pure Python.
 - [x] 114 recompilation C++ units tracked in `generated/default/` with setjmp patches applied
 - [x] Android stability fixes (landscape lock, Scudo teardown fix, user_data permissions)
 - [x] Settings screen overhaul (responsive 2-column landscape layout, high-DPI stacked fields, full persistence via SharedPreferences, dantes_inferno.toml, and JNI cvars bridge)
+- [x] VP6 FMV green artifacts fix: patched `vpkuwus128` in `recomp.35.cpp` and `recomp.103.cpp` with atomic SIMDE pack intrinsics, integrated into `apply_generated_patches.py`
 - [x] Prebuilt release APK packaged at `apk/dantes_inferno_arm64.apk`
 - [ ] DLC auto-install hook in OnPostSetup
 

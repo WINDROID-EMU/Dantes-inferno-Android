@@ -89,6 +89,34 @@ def main():
 }''',
             "sub_82678D78: return after sub_82700CE0")
 
+    # Fix vpkuwus in-place aliasing in VP6 video decoder (green artifacts fix)
+    vpkuwus_pattern = re.compile(
+        r'(\t// vpkuwus128 (v\d+),(v\d+),(v\d+)\n)'
+        r'(\tctx\.\w+\.u16\[7\] = [^\n]+\n'
+        r'\tctx\.\w+\.u16\[3\] = [^\n]+\n'
+        r'\tctx\.\w+\.u16\[6\] = [^\n]+\n'
+        r'\tctx\.\w+\.u16\[2\] = [^\n]+\n'
+        r'\tctx\.\w+\.u16\[5\] = [^\n]+\n'
+        r'\tctx\.\w+\.u16\[1\] = [^\n]+\n'
+        r'\tctx\.\w+\.u16\[4\] = [^\n]+\n'
+        r'\tctx\.\w+\.u16\[0\] = [^\n]+)'
+    )
+    for fpath in sorted(glob.glob(os.path.join(gen_dir, 'dantes_inferno_recomp.*.cpp'))):
+        with open(fpath, 'r', encoding='utf-8') as f:
+            fcontent = f.read()
+        if vpkuwus_pattern.search(fcontent):
+            def repl_vpkuwus(m):
+                comment = m.group(1)
+                vd = m.group(2)
+                va = m.group(3)
+                vb = m.group(4)
+                return f"{comment}\tsimde_mm_store_si128((simde__m128i*)ctx.{vd}.u16, simde_mm_packus_epi32(simde_mm_min_epu32(simde_mm_load_si128((simde__m128i*)ctx.{vb}.u32), simde_mm_set1_epi32(0xFFFF)), simde_mm_min_epu32(simde_mm_load_si128((simde__m128i*)ctx.{va}.u32), simde_mm_set1_epi32(0xFFFF))));"
+            new_fcontent = vpkuwus_pattern.sub(repl_vpkuwus, fcontent)
+            if new_fcontent != fcontent:
+                with open(fpath, 'w', encoding='utf-8') as f:
+                    f.write(new_fcontent)
+                print(f"  Applied: vpkuwus in-place aliasing fix ({os.path.basename(fpath)})")
+
     print("Generated code patches applied.")
 
 if __name__ == '__main__':

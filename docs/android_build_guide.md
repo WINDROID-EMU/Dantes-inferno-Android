@@ -101,6 +101,8 @@ O aplicativo conta com uma tela completa de configurações (`SettingsActivity`)
   - Ajustado em `src/rex_app.cpp` no método `OnDestroy()`: liberação segura (`.release()`) dos drawers Vulkan/ImGui para evitar o erro fatal `Scudo: invalid chunk state`.
 * **Caminhos de Dados e Permissões:**
   - Configuração explícita de `user_data_root` e `cache_root` no armazenamento interno do app em `src/dantes_main_android.cpp`, prevenindo falhas de permissão (`Permission denied` em `/data/.local`).
+* **Correção de Artefatos Verdes nas Cenas Iniciais (Vídeos VP6 FMV):**
+  - O decodificador de cutscenes VP6 executa como código PPC re枝recompilado. A instrução `vpkuwus128` (*Vector Pack Unsigned Word Unsigned Saturate*) convertia as palavras de 32 bits para 16 bits usando loops manuais que sofriam de *in-place aliasing* de registradores (o registrador destino sobrescrevia a leitura das palavras subsequentes nos registradores fonte compartilhados, como em `vpkuwus128 v63,v61,v63`). Substituído por chamada atômica SIMDE `simde_mm_packus_epi32` com saturação `simde_mm_min_epu32(0xFFFF)` em `recomp.35.cpp` e `recomp.103.cpp`, e automatizado em `patches/generated/apply_generated_patches.py`.
 * **Instalador XDVDFS Embutido:**
   - Módulos `src/dantes_iso_installer.cpp` e `.h` para montagem e extração direta de ISOs XGD2/XGD3 no Android.
 
