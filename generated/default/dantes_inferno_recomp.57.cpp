@@ -27408,6 +27408,7 @@ loc_8265FC10:
 	// bl 0x827cee14
 	ctx.lr = 0x8265FC58;
 	__imp__VdSwap(ctx, base);
+	OnGuestVdSwap();
 	// addi r11,r29,256
 	ctx.r11.s64 = ctx.r29.s64 + 256;
 	// stw r11,48(r31)

@@ -261,7 +261,20 @@ bool InitializeDriver() {
     adrenotools_set_turbo(true);
   }
 
+  // Configure Mesa Turnip persistent disk shader cache to prevent runtime shader compilation stutter
+  std::string cache_dir = "/storage/emulated/0/Android/data/com.dantesinferno.game/files/cache/mesa_shader_cache";
+  const char* env_root = std::getenv("DANTES_GAME_ROOT");
+  if (env_root && strlen(env_root) > 0) {
+    std::filesystem::path p(env_root);
+    if (p.filename() == "game") p = p.parent_path();
+    cache_dir = (p / "cache" / "mesa_shader_cache").string();
+  }
+  ec.clear();
+  std::filesystem::create_directories(cache_dir, ec);
+  setenv("MESA_SHADER_CACHE_DIR", cache_dir.c_str(), 1);
+  setenv("MESA_DISK_CACHE_SINGLE_FILE", "1", 1);
   setenv("MESA_VK_WSI_PRESENT_MODE", "mailbox", 0);
+  LOGI("Mesa shader disk cache configured at: %s", cache_dir.c_str());
   return true;
 }
 

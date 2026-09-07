@@ -89,6 +89,14 @@ def main():
 }''',
             "sub_82678D78: return after sub_82700CE0")
 
+    filepath, content = find_file_containing(gen_dir, r'__imp__VdSwap\(ctx, base\);')
+    if filepath:
+        content = apply_patch(filepath, content,
+            r'OnGuestVdSwap',
+            r'(\t__imp__VdSwap\(ctx, base\);)',
+            r'\g<1>\n\tOnGuestVdSwap();',
+            "VdSwap: hook OnGuestVdSwap() for true guest emulation FPS")
+
     # Fix vpkuwus in-place aliasing in VP6 video decoder (green artifacts fix)
     vpkuwus_pattern = re.compile(
         r'(\t// vpkuwus128 (v\d+),(v\d+),(v\d+)\n)'

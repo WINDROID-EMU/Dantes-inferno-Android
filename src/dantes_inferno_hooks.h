@@ -5,6 +5,39 @@
 #include <rex/logging/macros.h>
 #include <cstdint>
 #include <csetjmp>
+#include <atomic>
+#include <chrono>
+
+// Real-time guest engine statistics (hooked directly into VdSwap 0x827CEE14)
+inline std::atomic<float> g_guest_fps{0.0f};
+inline std::atomic<float> g_guest_frametime_ms{0.0f};
+inline std::atomic<uint64_t> g_guest_frame_count{0};
+inline std::chrono::steady_clock::time_point g_last_swap_time;
+inline double g_smoothed_guest_fps = 0.0;
+inline double g_smoothed_guest_ft = 0.0;
+
+inline void OnGuestVdSwap() {
+  auto now = std::chrono::steady_clock::now();
+  g_guest_frame_count.fetch_add(1, std::memory_order_relaxed);
+
+  if (g_last_swap_time.time_since_epoch().count() > 0) {
+    double delta_ms = std::chrono::duration<double, std::milli>(now - g_last_swap_time).count();
+    if (delta_ms > 0.0) {
+      double instant_fps = 1000.0 / delta_ms;
+      if (g_smoothed_guest_fps <= 0.0) {
+        g_smoothed_guest_fps = instant_fps;
+        g_smoothed_guest_ft = delta_ms;
+      } else {
+        // Fast response with smooth stabilization
+        g_smoothed_guest_fps = g_smoothed_guest_fps * 0.80 + instant_fps * 0.20;
+        g_smoothed_guest_ft = g_smoothed_guest_ft * 0.80 + delta_ms * 0.20;
+      }
+      g_guest_fps.store(static_cast<float>(g_smoothed_guest_fps), std::memory_order_relaxed);
+      g_guest_frametime_ms.store(static_cast<float>(g_smoothed_guest_ft), std::memory_order_relaxed);
+    }
+  }
+  g_last_swap_time = now;
+}
 
 inline thread_local jmp_buf g_fiber_jmp_buf;
 inline thread_local uint32_t g_setjmp_ctx_addr = 0;

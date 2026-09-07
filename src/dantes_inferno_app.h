@@ -22,10 +22,6 @@
 
 #include "dantes_inferno_hooks.h"
 
-// Real-time guest engine statistics (queried by Android JNI / HUD)
-inline std::atomic<float> g_guest_fps{0.0f};
-inline std::atomic<float> g_guest_frametime_ms{0.0f};
-
 REXCVAR_DEFINE_DOUBLE(time_scalar, 1.0, "Gameplay",
                       "Guest time scaling factor (1.0 = normal, 50.0 = fast-forward)");
 

@@ -79,7 +79,8 @@ int RunWindowedApp(int argc, char** argv) {
   auto remaining = rex::cvar::Init(argc, argv);
 
   rex::cvar::SetFlagByName("async_shader_compilation", "true");
-  rex::cvar::SetFlagByName("vulkan_pipeline_creation_threads", "4");
+  rex::cvar::SetFlagByName("vulkan_async_skip_incomplete_frames", "true");
+  rex::cvar::SetFlagByName("vulkan_pipeline_creation_threads", "6");
   rex::cvar::SetFlagByName("store_shaders", "true");
 
   rex::cvar::SetFlagByName("texture_cache_memory_limit_soft", "512");
@@ -87,7 +88,7 @@ int RunWindowedApp(int argc, char** argv) {
   rex::cvar::SetFlagByName("texture_cache_memory_limit_render_to_texture", "96");
   rex::cvar::SetFlagByName("texture_cache_memory_limit_soft_lifetime", "60");
   rex::cvar::SetFlagByName("vsync", "true");
-  rex::cvar::SetFlagByName("audio_maxqframes", "128");
+  rex::cvar::SetFlagByName("audio_maxqframes", "256");
 
   // Critical for Android ARM64 big.LITTLE / DynamIQ CPU topologies (e.g. Snapdragon):
   // Prevent guest threads from being pinned to host cores 0..3 (LITTLE low-power A510/A55 cores).
@@ -174,10 +175,10 @@ int RunWindowedApp(int argc, char** argv) {
 
     // Prevent audio buffer underruns / stuttering during video playback and heavy CPU load.
     // Low latency audio on Android defaults to a ~4ms buffer which easily starves during VP6
-    // video decoding. Disabling low latency mode and setting sample frames to 2048 gives a
-    // smooth ~40ms cushion with zero crackling, pops or audio desync.
+    // video decoding. Disabling low latency mode and setting sample frames to 4096 gives a
+    // smooth ~85ms cushion with zero crackling, pops or audio desync.
     SDL_SetHint(SDL_HINT_ANDROID_LOW_LATENCY_AUDIO, "0");
-    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "2048");
+    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "4096");
 #endif
     MAIN_LOGI("Initializing SDLWindowedAppContext...");
     rex::ui::SDLWindowedAppContext app_context;
@@ -277,11 +278,28 @@ Java_com_dantesinferno_game_MainActivity_nativeSetGraphicsConfig(
 
 extern "C" JNIEXPORT jfloat JNICALL
 Java_com_dantesinferno_game_MainActivity_nativeGetEngineFps(JNIEnv* /* env */, jclass /* clazz */) {
+  if (g_guest_frame_count.load(std::memory_order_relaxed) == 0) {
+    return 0.0f;
+  }
+  auto now = std::chrono::steady_clock::now();
+  double elapsed_ms = std::chrono::duration<double, std::milli>(now - g_last_swap_time).count();
+  if (elapsed_ms > 250.0) {
+    // Engine is stalled/frozen (e.g. compiling shaders or loading); degrade FPS accurately
+    return static_cast<float>(1000.0 / elapsed_ms);
+  }
   return g_guest_fps.load(std::memory_order_relaxed);
 }
 
 extern "C" JNIEXPORT jfloat JNICALL
 Java_com_dantesinferno_game_MainActivity_nativeGetEngineFrametime(JNIEnv* /* env */, jclass /* clazz */) {
+  if (g_guest_frame_count.load(std::memory_order_relaxed) == 0) {
+    return 0.0f;
+  }
+  auto now = std::chrono::steady_clock::now();
+  double elapsed_ms = std::chrono::duration<double, std::milli>(now - g_last_swap_time).count();
+  if (elapsed_ms > 250.0) {
+    return static_cast<float>(elapsed_ms);
+  }
   return g_guest_frametime_ms.load(std::memory_order_relaxed);
 }
 #endif

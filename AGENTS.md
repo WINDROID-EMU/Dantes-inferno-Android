@@ -221,6 +221,9 @@ implemented in pure Python.
       - Clang compiler optimization flags `-O3 -fomit-frame-pointer -fno-stack-protector -ffp-contract=fast -fvectorize` removing overhead across 20,000+ recompiled guest functions.
       - Fixed Turnip crash recovery false-positive in `MainActivity.java` so high-performance Mesa driver remains active.
 - [x] In-game real-time FPS & Frametime (ms) HUD overlay with toggle in Settings, color-coded performance indicators (green/yellow/red), and isolated alpha/visibility.
+- [x] Genuine Xbox 360 guest emulation FPS measurement: hooked directly into `VdSwap` (`0x827CEE14`), with stall detection for lag/compilation pauses, and removed deceptive Android `Choreographer` display rate fallback.
+- [x] Vulkan pipeline & shader stutter optimization: enabled persistent on-disk Mesa shader cache (`MESA_SHADER_CACHE_DIR`, `MESA_DISK_CACHE_SINGLE_FILE=1`), `vulkan_async_skip_incomplete_frames=true`, and increased compilation threads to 6.
+- [x] Enhanced audio underrun prevention: expanded SDL audio device sample buffer to 4096 frames (~85ms safety buffer) and `audio_maxqframes=256`.
 - [x] Prebuilt release APK packaged at `apk/dantes_inferno_arm64.apk`
 - [ ] DLC auto-install hook in OnPostSetup
 
