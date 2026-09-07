@@ -99,9 +99,29 @@ endif()
 
 if(NOT MSVC AND (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64" OR ANDROID_ABI MATCHES "arm64-v8a"))
     # Base ARMv8-A architecture supported across ARM64 devices
-    target_compile_options(dantes_inferno PRIVATE -march=armv8-a)
+    # Optimization flags for ARM64 recompilation:
+    # -O3: Maximum optimization level for speed
+    # -fomit-frame-pointer: Free up x29 frame pointer register for codegen register allocation
+    # -fno-stack-protector: Eliminate 20,000+ stack canary checks inserted across recompiled guest functions
+    # -ffp-contract=fast: Allow ARM64 fused multiply-add (fmla/fmls) instructions for vector math
+    # -fvectorize: Enable aggressive LLVM loop and SLP vectorization
+    target_compile_options(dantes_inferno PRIVATE
+        -march=armv8-a
+        -O3
+        -fomit-frame-pointer
+        -fno-stack-protector
+        -ffp-contract=fast
+        -fvectorize
+    )
     if(TARGET dantes_inferno_recomp)
-        target_compile_options(dantes_inferno_recomp PRIVATE -march=armv8-a)
+        target_compile_options(dantes_inferno_recomp PRIVATE
+            -march=armv8-a
+            -O3
+            -fomit-frame-pointer
+            -fno-stack-protector
+            -ffp-contract=fast
+            -fvectorize
+        )
     endif()
 
     # Optimize across the many generated recompilation translation units.

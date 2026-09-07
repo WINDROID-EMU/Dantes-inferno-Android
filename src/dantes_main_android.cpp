@@ -86,10 +86,15 @@ int RunWindowedApp(int argc, char** argv) {
   rex::cvar::SetFlagByName("texture_cache_memory_limit_hard", "768");
   rex::cvar::SetFlagByName("texture_cache_memory_limit_render_to_texture", "96");
   rex::cvar::SetFlagByName("texture_cache_memory_limit_soft_lifetime", "60");
-  rex::cvar::SetFlagByName("gpu_allow_invalid_fetch_constants", "true");
-
   rex::cvar::SetFlagByName("vsync", "true");
   rex::cvar::SetFlagByName("audio_maxqframes", "128");
+
+  // Critical for Android ARM64 big.LITTLE / DynamIQ CPU topologies (e.g. Snapdragon):
+  // Prevent guest threads from being pinned to host cores 0..3 (LITTLE low-power A510/A55 cores).
+  // This allows the Linux kernel scheduler to run CPU-intensive recompilation and GPU threads
+  // across all Big (Cortex-A710/A78) and Prime (Cortex-X2/X1) performance cores.
+  rex::cvar::SetFlagByName("ignore_thread_affinities", "true");
+  rex::cvar::SetFlagByName("ignore_thread_priorities", "true");
 
   const char* env_root = std::getenv("DANTES_GAME_ROOT");
   std::filesystem::path ext = env_root ? std::filesystem::path(env_root) : std::filesystem::path("/storage/emulated/0/Android/data/com.dantesinferno.game/files");

@@ -215,6 +215,11 @@ implemented in pure Python.
 - [x] Settings screen overhaul (responsive 2-column landscape layout, high-DPI stacked fields, full persistence via SharedPreferences, dantes_inferno.toml, and JNI cvars bridge)
 - [x] VP6 FMV green artifacts fix: patched `vpkuwus128` in `recomp.35.cpp` and `recomp.103.cpp` with atomic SIMDE pack intrinsics, integrated into `apply_generated_patches.py`
 - [x] Audio stuttering fix: disabled low latency audio mode (`SDL_ANDROID_LOW_LATENCY_AUDIO=0`), enlarged sample buffer to 2048 frames (`SDL_AUDIO_DEVICE_SAMPLE_FRAMES=2048`), and raised `audio_maxqframes=128`
+- [x] ARM64 CPU Emulation performance optimization:
+      - `ignore_thread_affinities = true` & `ignore_thread_priorities = true`: unpinned guest threads from host cores 0..3 (LITTLE low-power A510 cores) to unleash full power of Big (Cortex-A710) and Prime (Cortex-X2) cores on Snapdragon SoCs.
+      - Native ARM64 NEON vector conversions (`vmaxq_f32`, `vcvtq_u32_f32`, `vcvtq_s32_f32`, `vcvtq_f32_u32`) replacing slow simulated multi-step conversions in `thirdparty/rexglue-sdk/include/rex/ppc/intrinsics.h`.
+      - Clang compiler optimization flags `-O3 -fomit-frame-pointer -fno-stack-protector -ffp-contract=fast -fvectorize` removing overhead across 20,000+ recompiled guest functions.
+      - Fixed Turnip crash recovery false-positive in `MainActivity.java` so high-performance Mesa driver remains active.
 - [x] Prebuilt release APK packaged at `apk/dantes_inferno_arm64.apk`
 - [ ] DLC auto-install hook in OnPostSetup
 

@@ -139,6 +139,13 @@ public class MainActivity extends SDLActivity {
             Log.i(TAG, "Configuring AdrenoTools Turnip driver: dir=" + customDriverDir.getAbsolutePath() + ", name=" + driverName);
             GameConfigManager.markTurnipLaunchInProgress(this, true);
             nativeSetDriverConfig(customDriverDir.getAbsolutePath(), driverName, hookLibDir, true, turbo, disableDebug);
+
+            // Reset the crash recovery flag once the activity is running and past Vulkan initialization,
+            // so subsequent normal launches don't falsely believe Turnip crashed.
+            getWindow().getDecorView().postDelayed(() -> {
+                GameConfigManager.markTurnipLaunchInProgress(MainActivity.this, false);
+                Log.i(TAG, "Turnip initialization completed safely; in-flight flag cleared.");
+            }, 5000);
         } else {
             Log.i(TAG, "Configuring System Vulkan driver");
             GameConfigManager.markTurnipLaunchInProgress(this, false);
