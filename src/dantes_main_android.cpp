@@ -83,7 +83,7 @@ int RunWindowedApp(int argc, char** argv) {
   auto remaining = rex::cvar::Init(argc, argv);
 
   rex::cvar::SetFlagByName("async_shader_compilation", "true");
-  rex::cvar::SetFlagByName("vulkan_async_skip_incomplete_frames", "false");
+  rex::cvar::SetFlagByName("vulkan_async_skip_incomplete_frames", "true");
   rex::cvar::SetFlagByName("render_target_path_vulkan", "fbo");
   rex::cvar::SetFlagByName("vulkan_pipeline_creation_threads", "6");
   rex::cvar::SetFlagByName("store_shaders", "true");
