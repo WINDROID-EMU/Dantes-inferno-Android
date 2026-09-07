@@ -293,9 +293,25 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Exibe o HUD no canto superior com os FPS reais e tempo de quadro (ms)."
+                        android:layout_marginBottom="8dp"
+                        android:text="Exibe o HUD no centro superior com os FPS reais e tempo de quadro (ms)."
                         android:textColor="#8B949E"
                         android:textSize="11sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Opacidade do Contador FPS:"
+                        android:textColor="#F0F6FC"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <Spinner
+                        android:id="@+id/spinner_fps_opacity"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_spinner_field" />
                 </LinearLayout>
 
             </LinearLayout>

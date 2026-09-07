@@ -140,9 +140,10 @@ public class VirtualControllerLayout extends RelativeLayout {
             return;
         }
 
-        // Keep HUD visible at 100% opacity regardless of controller opacity
+        // Apply configured opacity to FPS HUD
+        int fpsOpacity = GameConfigManager.getFpsOpacity(getContext());
         hudFpsContainer.setVisibility(View.VISIBLE);
-        hudFpsContainer.setAlpha(1.0f);
+        hudFpsContainer.setAlpha(Math.max(0.15f, Math.min(1.0f, fpsOpacity / 100f)));
 
         mFpsCallback = new android.view.Choreographer.FrameCallback() {
             @Override

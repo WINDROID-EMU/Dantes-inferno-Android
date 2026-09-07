@@ -81,6 +81,7 @@ class FpsOverlayDialog : public rex::ui::ImGuiDialog {
     g_guest_fps.store(static_cast<float>(smoothed_fps_), std::memory_order_relaxed);
     g_guest_frametime_ms.store(static_cast<float>(smoothed_ft_), std::memory_order_relaxed);
 
+#if !defined(__ANDROID__)
     ImGui::SetNextWindowPos(ImVec2(8, 8), ImGuiCond_Always);
     ImGui::SetNextWindowBgAlpha(0.65f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 8));
@@ -115,6 +116,7 @@ class FpsOverlayDialog : public rex::ui::ImGuiDialog {
     }
     ImGui::End();
     ImGui::PopStyleVar(2);
+#endif
   }
 
  private:

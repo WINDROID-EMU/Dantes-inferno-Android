@@ -24,6 +24,7 @@ public class SettingsActivity extends AppCompatActivity {
     private SwitchCompat switchTurboMode;
     private SwitchCompat switchDisableDebug;
     private SwitchCompat switchShowFps;
+    private Spinner spinnerFpsOpacity;
     private TextView tvDriverStatus;
     private Button btnInstallDriverZip;
     private Button btnResetSystemDriver;
@@ -70,6 +71,7 @@ public class SettingsActivity extends AppCompatActivity {
         switchTurboMode = findViewById(R.id.switch_turbo_mode);
         switchDisableDebug = findViewById(R.id.switch_disable_debug);
         switchShowFps = findViewById(R.id.switch_show_fps);
+        spinnerFpsOpacity = findViewById(R.id.spinner_fps_opacity);
         tvDriverStatus = findViewById(R.id.tv_settings_driver_name);
         btnInstallDriverZip = findViewById(R.id.btn_install_driver_zip);
         btnResetSystemDriver = findViewById(R.id.btn_reset_system_driver);
@@ -125,6 +127,32 @@ public class SettingsActivity extends AppCompatActivity {
             switchShowFps.setChecked(GameConfigManager.isShowFpsEnabled(this));
             switchShowFps.setOnCheckedChangeListener((bv, isChecked) -> {
                 GameConfigManager.setShowFpsEnabled(this, isChecked);
+                if (spinnerFpsOpacity != null) spinnerFpsOpacity.setEnabled(isChecked);
+            });
+        }
+
+        if (spinnerFpsOpacity != null) {
+            String[] fpsOpacities = new String[] { "90% (Padrão)", "100% (Sólido)", "60% (Translúcido)", "35% (Muito Discreto)" };
+            ArrayAdapter<String> fpsOpAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, fpsOpacities);
+            spinnerFpsOpacity.setAdapter(fpsOpAdapter);
+
+            int currentFpsOp = GameConfigManager.getFpsOpacity(this);
+            if (currentFpsOp == 100) spinnerFpsOpacity.setSelection(1);
+            else if (currentFpsOp == 60) spinnerFpsOpacity.setSelection(2);
+            else if (currentFpsOp == 35) spinnerFpsOpacity.setSelection(3);
+            else spinnerFpsOpacity.setSelection(0);
+
+            spinnerFpsOpacity.setEnabled(GameConfigManager.isShowFpsEnabled(this));
+
+            spinnerFpsOpacity.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    int op = (position == 1) ? 100 : (position == 2 ? 60 : (position == 3 ? 35 : 90));
+                    GameConfigManager.setFpsOpacity(SettingsActivity.this, op);
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {}
             });
         }
 
