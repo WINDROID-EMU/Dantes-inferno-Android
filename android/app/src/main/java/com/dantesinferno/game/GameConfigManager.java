@@ -380,6 +380,7 @@ public class GameConfigManager {
         sb.append("swap_post_effect = \"").append(effect).append("\"\n");
         sb.append("async_shader_compilation = ").append(asyncShaders ? "true" : "false").append("\n");
         sb.append("vulkan_pipeline_creation_threads = ").append(threads).append("\n");
+        sb.append("audio_maxqframes = 128\n");
 
         if (presentMode == 1) {
             sb.append("vulkan_allow_present_mode_mailbox = true\n");

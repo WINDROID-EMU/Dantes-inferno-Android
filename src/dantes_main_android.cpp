@@ -89,6 +89,7 @@ int RunWindowedApp(int argc, char** argv) {
   rex::cvar::SetFlagByName("gpu_allow_invalid_fetch_constants", "true");
 
   rex::cvar::SetFlagByName("vsync", "true");
+  rex::cvar::SetFlagByName("audio_maxqframes", "128");
 
   const char* env_root = std::getenv("DANTES_GAME_ROOT");
   std::filesystem::path ext = env_root ? std::filesystem::path(env_root) : std::filesystem::path("/storage/emulated/0/Android/data/com.dantesinferno.game/files");
@@ -165,6 +166,13 @@ int RunWindowedApp(int argc, char** argv) {
     // Force SDL to respect the landscape orientation. Without this, SDL3
     // might override the AndroidManifest setting and switch to portrait (requestedOrientation=13).
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+
+    // Prevent audio buffer underruns / stuttering during video playback and heavy CPU load.
+    // Low latency audio on Android defaults to a ~4ms buffer which easily starves during VP6
+    // video decoding. Disabling low latency mode and setting sample frames to 2048 gives a
+    // smooth ~40ms cushion with zero crackling, pops or audio desync.
+    SDL_SetHint(SDL_HINT_ANDROID_LOW_LATENCY_AUDIO, "0");
+    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "2048");
 #endif
     MAIN_LOGI("Initializing SDLWindowedAppContext...");
     rex::ui::SDLWindowedAppContext app_context;
