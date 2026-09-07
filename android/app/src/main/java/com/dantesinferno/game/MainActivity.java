@@ -14,6 +14,9 @@ import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -48,7 +51,9 @@ public class MainActivity extends SDLActivity {
     protected String[] getLibraries() {
         return new String[] {
             "c++_shared",
+            "rexruntime",
             "rexruntimerd",
+            "rexgpu-xenos",
             "rexgpu-xenosrd",
             "dantes_inferno"
         };
@@ -144,10 +149,15 @@ public class MainActivity extends SDLActivity {
 
             // Reset the crash recovery flag once the activity is running and past Vulkan initialization,
             // so subsequent normal launches don't falsely believe Turnip crashed.
-            getWindow().getDecorView().postDelayed(() -> {
-                GameConfigManager.markTurnipLaunchInProgress(MainActivity.this, false);
-                Log.i(TAG, "Turnip initialization completed safely; in-flight flag cleared.");
-            }, 5000);
+            if (getWindow() != null) {
+                View decor = getWindow().getDecorView();
+                if (decor != null) {
+                    decor.postDelayed(() -> {
+                        GameConfigManager.markTurnipLaunchInProgress(MainActivity.this, false);
+                        Log.i(TAG, "Turnip initialization completed safely; in-flight flag cleared.");
+                    }, 5000);
+                }
+            }
         } else {
             Log.i(TAG, "Configuring System Vulkan driver");
             GameConfigManager.markTurnipLaunchInProgress(this, false);
@@ -179,27 +189,36 @@ public class MainActivity extends SDLActivity {
     }
 
     private void applyImmersiveStickyMode() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            getWindow().setDecorFitsSystemWindows(false);
-            android.view.WindowInsetsController controller = getWindow().getInsetsController();
-            if (controller != null) {
-                controller.hide(
-                    android.view.WindowInsets.Type.statusBars() |
-                    android.view.WindowInsets.Type.navigationBars()
-                );
-                controller.setSystemBarsBehavior(
-                    android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                );
+        Window window = getWindow();
+        if (window == null) return;
+        try {
+            View decorView = window.getDecorView();
+            if (decorView != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.setDecorFitsSystemWindows(false);
+                    WindowInsetsController controller = decorView.getWindowInsetsController();
+                    if (controller != null) {
+                        controller.hide(
+                            WindowInsets.Type.statusBars() |
+                            WindowInsets.Type.navigationBars()
+                        );
+                        controller.setSystemBarsBehavior(
+                            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        );
+                    }
+                } else {
+                    @SuppressWarnings("deprecation")
+                    int flags = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                              | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                              | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                              | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                              | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                              | View.SYSTEM_UI_FLAG_FULLSCREEN;
+                    decorView.setSystemUiVisibility(flags);
+                }
             }
-        } else {
-            @SuppressWarnings("deprecation")
-            int flags = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                      | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                      | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                      | View.SYSTEM_UI_FLAG_FULLSCREEN;
-            getWindow().getDecorView().setSystemUiVisibility(flags);
+        } catch (Throwable t) {
+            Log.w(TAG, "applyImmersiveStickyMode failed gracefully: " + t.getMessage());
         }
     }
 

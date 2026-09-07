@@ -211,7 +211,7 @@ implemented in pure Python.
 - [x] Android ARM64 port implemented (Vulkan + SDL3 + AdrenoTools Turnip)
 - [x] In-engine ISO installer (dantes_iso_installer) extracts XDVDFS directly on Android
 - [x] 114 recompilation C++ units tracked in `generated/default/` with setjmp patches applied
-- [x] Android stability fixes (landscape lock, Scudo teardown fix, user_data permissions)
+- [x] Android stability fixes (landscape lock, Scudo teardown fix, user_data permissions, WindowInsetsController null-safety on Android 11+ / Moto G100)
 - [x] Settings screen overhaul (responsive 2-column landscape layout, high-DPI stacked fields, full persistence via SharedPreferences, dantes_inferno.toml, and JNI cvars bridge)
 - [x] VP6 FMV green artifacts fix: patched `vpkuwus128` in `recomp.35.cpp` and `recomp.103.cpp` with atomic SIMDE pack intrinsics, integrated into `apply_generated_patches.py`
 - [x] Audio stuttering fix: disabled low latency audio mode (`SDL_ANDROID_LOW_LATENCY_AUDIO=0`), enlarged sample buffer to 2048 frames (`SDL_AUDIO_DEVICE_SAMPLE_FRAMES=2048`), and raised `audio_maxqframes=128`
