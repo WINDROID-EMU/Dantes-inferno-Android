@@ -247,6 +247,50 @@ static int HookedPthreadJoin(pthread_t thread, void** retval) {
   return res;
 }
 
+static int (*g_real_pthread_setname_np)(pthread_t, const char*) = nullptr;
+static pid_t (*g_real_pthread_gettid_np)(pthread_t) = nullptr;
+
+static int HookedPthreadSetNameNp(pthread_t thread, const char* name) {
+  if (!g_real_pthread_setname_np) {
+    g_real_pthread_setname_np = (int(*)(pthread_t, const char*))dlsym(RTLD_DEFAULT, "pthread_setname_np");
+  }
+  if (!g_real_pthread_gettid_np) {
+    g_real_pthread_gettid_np = (pid_t(*)(pthread_t))dlsym(RTLD_DEFAULT, "pthread_gettid_np");
+  }
+
+  int res = g_real_pthread_setname_np ? g_real_pthread_setname_np(thread, name) : 0;
+
+  if (name && *name) {
+    pid_t tid = 0;
+    if (pthread_equal(thread, pthread_self())) {
+      tid = gettid();
+    } else if (g_real_pthread_gettid_np) {
+      tid = g_real_pthread_gettid_np(thread);
+    }
+
+    if (strstr(name, "Audio") != nullptr ||
+        strstr(name, "EARS") != nullptr ||
+        strstr(name, "Dac") != nullptr ||
+        strstr(name, "RwAudio") != nullptr ||
+        strstr(name, "XMA") != nullptr) {
+      // Tier 1: Real-time Audio processing (nice -16).
+      // Guarantees immediate scheduling over GPU commands and background compilers,
+      // eliminating audio buffer starvation and combat stuttering under heavy load.
+      int prio_res = setpriority(PRIO_PROCESS, tid, -16);
+      __android_log_print(ANDROID_LOG_INFO, "AudioPriority",
+                          "Elevated priority for audio thread '%s' (tid %d) to nice -16 (res=%d)",
+                          name, (int)tid, prio_res);
+    } else if (strstr(name, "Vulkan Pipeline") != nullptr ||
+               strstr(name, "TextureWorker") != nullptr) {
+      // Tier 3: Background compiler & texture streaming threads (nice +2).
+      // Prevents background shader/pipeline workers from stealing CPU cycles from audio.
+      setpriority(PRIO_PROCESS, tid, 2);
+    }
+  }
+
+  return res;
+}
+
 static bool PatchGotSlot(void* target_addr, void* new_func, void** old_func) {
   if (!target_addr) return false;
   uintptr_t page_size = sysconf(_SC_PAGESIZE);
@@ -271,6 +315,7 @@ struct LibraryGotSlots {
   void** got_pthread_create = nullptr;
   void** got_pthread_join = nullptr;
   void** got_pthread_detach = nullptr;
+  void** got_pthread_setname_np = nullptr;
 };
 
 static void ScanLibraryGot(const struct dl_phdr_info* info, LibraryGotSlots& out_slots) {
@@ -332,6 +377,8 @@ static void ScanLibraryGot(const struct dl_phdr_info* info, LibraryGotSlots& out
         out_slots.got_pthread_join = slot;
       } else if (strcmp(sym_name, "pthread_detach") == 0 && !out_slots.got_pthread_detach) {
         out_slots.got_pthread_detach = slot;
+      } else if (strcmp(sym_name, "pthread_setname_np") == 0 && !out_slots.got_pthread_setname_np) {
+        out_slots.got_pthread_setname_np = slot;
       }
     }
   };
@@ -355,18 +402,25 @@ static int DlIteratePatchCallback(struct dl_phdr_info* info, size_t, void*) {
       if (!slots.got_pthread_create) slots.got_pthread_create = reinterpret_cast<void**>(info->dlpi_addr + 0x85d728);
       if (!slots.got_pthread_join) slots.got_pthread_join = reinterpret_cast<void**>(info->dlpi_addr + 0x85de68);
       if (!slots.got_pthread_detach) slots.got_pthread_detach = reinterpret_cast<void**>(info->dlpi_addr + 0x866c88);
+      if (!slots.got_pthread_setname_np) slots.got_pthread_setname_np = reinterpret_cast<void**>(info->dlpi_addr + 0x85de28);
 
       PatchGotSlot(slots.got_pthread_create, (void*)&HookedPthreadCreate, (void**)&g_real_pthread_create);
       PatchGotSlot(slots.got_pthread_join, (void*)&HookedPthreadJoin, (void**)&g_real_pthread_join);
       PatchGotSlot(slots.got_pthread_detach, (void*)&HookedPthreadDetach, (void**)&g_real_pthread_detach);
+      PatchGotSlot(slots.got_pthread_setname_np, (void*)&HookedPthreadSetNameNp, (void**)&g_real_pthread_setname_np);
       __android_log_print(ANDROID_LOG_INFO, "BionicPthreadFix",
-                          "Patched librexruntimerd.so pthread GOT slots (create=%p, join=%p, detach=%p)",
-                          slots.got_pthread_create, slots.got_pthread_join, slots.got_pthread_detach);
+                          "Patched librexruntimerd.so pthread GOT slots (create=%p, join=%p, detach=%p, setname=%p)",
+                          slots.got_pthread_create, slots.got_pthread_join, slots.got_pthread_detach, slots.got_pthread_setname_np);
     } else if (is_downpour) {
       if (slots.got_pthread_create) {
         PatchGotSlot(slots.got_pthread_create, (void*)&HookedPthreadCreate, (void**)&g_real_pthread_create);
         __android_log_print(ANDROID_LOG_INFO, "BionicPthreadFix",
                             "Patched libdantes_inferno.so pthread_create GOT slot (%p)", slots.got_pthread_create);
+      }
+      if (slots.got_pthread_setname_np) {
+        PatchGotSlot(slots.got_pthread_setname_np, (void*)&HookedPthreadSetNameNp, (void**)&g_real_pthread_setname_np);
+        __android_log_print(ANDROID_LOG_INFO, "BionicPthreadFix",
+                            "Patched libdantes_inferno.so pthread_setname_np GOT slot (%p)", slots.got_pthread_setname_np);
       }
     }
   }
@@ -378,6 +432,7 @@ static void InitBionicPthreadFix() {
   if (!g_real_pthread_create) g_real_pthread_create = (int(*)(pthread_t*, const pthread_attr_t*, void*(*)(void*), void*))dlsym(RTLD_DEFAULT, "pthread_create");
   if (!g_real_pthread_join) g_real_pthread_join = (int(*)(pthread_t, void**))dlsym(RTLD_DEFAULT, "pthread_join");
   if (!g_real_pthread_detach) g_real_pthread_detach = (int(*)(pthread_t))dlsym(RTLD_DEFAULT, "pthread_detach");
+  if (!g_real_pthread_setname_np) g_real_pthread_setname_np = (int(*)(pthread_t, const char*))dlsym(RTLD_DEFAULT, "pthread_setname_np");
 
   dl_iterate_phdr(DlIteratePatchCallback, nullptr);
   ConfigurePerformanceThread();

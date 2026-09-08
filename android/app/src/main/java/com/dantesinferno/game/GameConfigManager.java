@@ -484,7 +484,7 @@ public class GameConfigManager {
         sb.append("anisotropic_override = ").append(aniso).append("\n");
         sb.append("async_shader_compilation = ").append(asyncShaders ? "true" : "false").append("\n");
         sb.append("vulkan_pipeline_creation_threads = ").append(threads).append("\n");
-        sb.append("audio_maxqframes = 128\n");
+        sb.append("audio_maxqframes = 64\n");
         sb.append("ignore_thread_affinities = true\n");
         sb.append("ignore_thread_priorities = true\n");
 

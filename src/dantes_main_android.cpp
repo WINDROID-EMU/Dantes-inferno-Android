@@ -100,7 +100,7 @@ int RunWindowedApp(int argc, char** argv) {
   rex::cvar::SetFlagByName("texture_cache_memory_limit_render_to_texture", "96");
   rex::cvar::SetFlagByName("texture_cache_memory_limit_soft_lifetime", "60");
   rex::cvar::SetFlagByName("vsync", "true");
-  rex::cvar::SetFlagByName("audio_maxqframes", "256");
+  rex::cvar::SetFlagByName("audio_maxqframes", "64");
 
   // Critical for Android ARM64 big.LITTLE / DynamIQ CPU topologies (e.g. Snapdragon):
   // Prevent guest threads from being pinned to host cores 0..3 (LITTLE low-power A510/A55 cores).
@@ -203,7 +203,7 @@ int RunWindowedApp(int argc, char** argv) {
     SDL_SetHintWithPriority(SDL_HINT_AUDIO_DRIVER, "AAudio", SDL_HINT_OVERRIDE);
     SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_STREAM_ROLE, "Game", SDL_HINT_OVERRIDE);
     SDL_SetHintWithPriority(SDL_HINT_ANDROID_LOW_LATENCY_AUDIO, "0", SDL_HINT_OVERRIDE);
-    SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "4096", SDL_HINT_OVERRIDE);
+    SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "1024", SDL_HINT_OVERRIDE);
 #endif
     MAIN_LOGI("Initializing SDLWindowedAppContext...");
     rex::ui::SDLWindowedAppContext app_context;
