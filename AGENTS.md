@@ -269,6 +269,14 @@ implemented in pure Python.
         confirmed incompatible with Android: requires `VK_KHR_external_memory_win32` and
         `ID3D12Resource::CreateSharedHandle` — Win32-only APIs with no Android equivalent.
         Android port already uses native Vulkan (Turnip/Mesa) end-to-end without D3D12.
+- [x] Combat Audio Stutter Fix & Real-Time Thread Elevation:
+      - Diagnosed battle audio stuttering: Visceral's EARS audio mixing jobs (`EARSJob`), RenderWare Audio Core (`RwAudioCore Dac`), and ReXGlue `Audio Worker` were scheduled with background nice priority (competing equally with 6 Vulkan compiler threads), causing them to be starved of CPU cycles during combat particle/shader spikes.
+      - Hooked `pthread_setname_np` in `src/rex_app.cpp` via Bionic GOT hook: dynamically elevates all audio threads (`Audio Worker`, `EARSJob`, `RwAudioCore Dac`, `XMA Decoder`) to real-time `nice -16` upon thread naming, while deprioritizing background shader compilers (`Vulkan Pipeline`) to `nice +2`.
+      - Reduced `SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES` from `4096` (~85ms / 16 guest frames per callback) to `1024` (~21.3ms / 4 guest frames per callback): prevents massive burst buffer drainage, leaving 16 whole callbacks of headroom in ReXGlue's 64-frame audio queue.
+      - Aligned `audio_maxqframes = 64` across `dantes_main_android.cpp` and `GameConfigManager.java`.
+- [x] Audio Pipeline Benchmark Tool (`tools/audio_bench.sh`):
+      - Real-time live dashboard and timed benchmark modes over ADB.
+      - Extracts AudioTrack buffer frames, underrun counters, latency, FastMixer discontinuities, process time ms, and thread scheduling priorities (`/proc/$pid/task/`).
 - [ ] DLC auto-install hook in OnPostSetup
 - [ ] Button glyph replacement (requires RE of generated code)
 
