@@ -73,6 +73,7 @@ if(ANDROID)
         log
         adrenotools
         aaudio
+        OpenSLES
     )
     target_include_directories(dantes_inferno PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"

@@ -93,6 +93,12 @@ struct ThreadStartArg {
 };
 
 static void ConfigurePerformanceThread() {
+  // Request real-time round-robin scheduling (SCHED_RR) for the main thread
+  struct sched_param sp;
+  std::memset(&sp, 0, sizeof(sp));
+  sp.sched_priority = 1;
+  pthread_setschedparam(pthread_self(), SCHED_RR, &sp);
+
   // Set thread priority (nice -10 for high performance game threads)
   setpriority(PRIO_PROCESS, 0, -10);
 
@@ -272,23 +278,35 @@ static int HookedPthreadSetNameNp(pthread_t thread, const char* name) {
         strstr(name, "EARS") != nullptr ||
         strstr(name, "Dac") != nullptr ||
         strstr(name, "RwAudio") != nullptr ||
-        strstr(name, "XMA") != nullptr) {
-      // Tier 1: Real-time Audio processing (nice -16).
+        strstr(name, "XMA") != nullptr ||
+        strstr(name, "OpenSL") != nullptr ||
+        strstr(name, "AudioTrack") != nullptr) {
+      // Tier 1: Real-time Audio processing (SCHED_RR priority 2 + nice -16).
       // Guarantees immediate scheduling over GPU commands and background compilers,
       // eliminating audio buffer starvation and combat stuttering under heavy load.
+      struct sched_param sp;
+      std::memset(&sp, 0, sizeof(sp));
+      sp.sched_priority = 2;
+      int sched_res = pthread_setschedparam(thread, SCHED_RR, &sp);
       int prio_res = setpriority(PRIO_PROCESS, tid, -16);
       __android_log_print(ANDROID_LOG_INFO, "AudioPriority",
-                          "Elevated priority for audio thread '%s' (tid %d) to nice -16 (res=%d)",
-                          name, (int)tid, prio_res);
+                          "Elevated priority for audio thread '%s' (tid %d): sched_rr=%d, nice -16 (res=%d)",
+                          name, (int)tid, sched_res, prio_res);
     } else if (strstr(name, "Presentation") != nullptr ||
                strstr(name, "GPU Commands") != nullptr ||
-               strstr(name, "Main XThread") != nullptr) {
-      // Tier 2: Core Game Simulation and Presentation (nice -10).
+               strstr(name, "Main XThread") != nullptr ||
+               strstr(name, "Render") != nullptr ||
+               strstr(name, "DantesInferno") != nullptr) {
+      // Tier 2: Core Game Simulation, Render and Presentation (SCHED_RR priority 1 + nice -10).
       // Ensures the Visceral presentation and draw submission thread gets high scheduling priority.
-      setpriority(PRIO_PROCESS, tid, -10);
+      struct sched_param sp;
+      std::memset(&sp, 0, sizeof(sp));
+      sp.sched_priority = 1;
+      int sched_res = pthread_setschedparam(thread, SCHED_RR, &sp);
+      int prio_res = setpriority(PRIO_PROCESS, tid, -10);
       __android_log_print(ANDROID_LOG_INFO, "ThreadPriority",
-                          "Elevated priority for core game thread '%s' (tid %d) to nice -10",
-                          name, (int)tid);
+                          "Elevated priority for core game thread '%s' (tid %d): sched_rr=%d, nice -10 (res=%d)",
+                          name, (int)tid, sched_res, prio_res);
     } else if (strstr(name, "Vulkan Pipeline") != nullptr ||
                strstr(name, "TextureWorker") != nullptr) {
       // Tier 3: Background compiler & texture streaming threads (nice +2).

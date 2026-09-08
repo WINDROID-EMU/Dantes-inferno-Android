@@ -281,7 +281,10 @@ implemented in pure Python.
       - Reduced Storage & I/O Churn: raised log forwarder interval to 1000ms, changed default log level to `warning`, and disabled duplicate shader dumping (`store_shaders = false`) to eliminate FUSE flash file system stalls.
       - Display Cadence Judder Elimination: enforced `Surface.setFrameRate(60.0f)` and `preferredRefreshRate = 60.0f` in `MainActivity.java` to prevent 2:2 pulldown micro-judder on 120 Hz displays (e.g. Xiaomi 12).
       - Expanded texture cache memory limits (`soft = 768 MB`, `hard = 1024 MB`, `lifetime = 120s`) to prevent combat asset reload thrashing.
-      - Verified via ADB benchmarks: 60.7 FPS, 16.47 ms frametime (0.0% missed frames, 0.0% stutter), and 0 audio underruns.
+- [x] USB Polling Elimination & Real-Time Thread Policy Optimization:
+      - Disabled SDL3 USB HIDAPI probing (`SDL_HINT_JOYSTICK_HIDAPI=0`, `SDL_HINT_HIDAPI_LIBUSB=0`) and bypassed `initializeUSB()` in `HIDDeviceManager.java` to eliminate Android OS modal permission dialogs and enumeration stalls while keeping native Android `InputDevice` controller support.
+      - Configured OpenSL ES (`openslES`) as the default audio driver in `src/dantes_main_android.cpp` with `OpenSLES` linked in `CMakeLists.txt`.
+      - Enforced real-time thread priority policies (`SDL_HINT_THREAD_PRIORITY_POLICY=realtime`, `SDL_HINT_THREAD_FORCE_REALTIME_TIME_CRITICAL=1`) and hooked native NDK `pthread_setschedparam` (`SCHED_RR`) for audio (priority 2, `nice -16`) and core render/emulation threads (priority 1, `nice -10`) to prevent Android EAS scheduler from demoting critical tasks to LITTLE cores.
 - [ ] DLC auto-install hook in OnPostSetup
 - [ ] Button glyph replacement (requires RE of generated code)
 

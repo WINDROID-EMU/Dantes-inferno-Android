@@ -140,6 +140,14 @@ public class HIDDeviceManager {
     }
 
     private void initializeUSB() {
+        // USB polling/probing is disabled to eliminate Android OS USB permission popups,
+        // prevent background device enumeration overhead, and allow Android's native InputDevice
+        // subsystem to handle USB controllers seamlessly without raw HIDAPI conflicts.
+        Log.i(TAG, "initializeUSB(): USB polling is disabled.");
+        return;
+    }
+
+    private void unused_initializeUSB() {
         mUsbManager = (UsbManager)mContext.getSystemService(Context.USB_SERVICE);
         if (mUsbManager == null) {
             return;
@@ -579,11 +587,9 @@ public class HIDDeviceManager {
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     boolean initialize(boolean usb, boolean bluetooth) {
-        Log.v(TAG, "initialize(" + usb + ", " + bluetooth + ")");
+        Log.v(TAG, "initialize(" + usb + ", " + bluetooth + ") [USB polling disabled]");
 
-        if (usb) {
-            initializeUSB();
-        }
+        // USB device polling explicitly disabled
         if (bluetooth) {
             initializeBluetooth();
         }

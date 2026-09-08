@@ -202,12 +202,23 @@ int RunWindowedApp(int argc, char** argv) {
     // might override the AndroidManifest setting and switch to portrait (requestedOrientation=13).
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
 
+    // Disable SDL3 raw USB HIDAPI polling/probing. This prevents modal Android OS
+    // "Allow app to access USB device" permission popups, eliminates device enumeration
+    // stalls, and lets Android's native InputDevice subsystem handle gamepads smoothly.
+    SDL_SetHintWithPriority(SDL_HINT_JOYSTICK_HIDAPI, "0", SDL_HINT_OVERRIDE);
+    SDL_SetHintWithPriority(SDL_HINT_HIDAPI_LIBUSB, "0", SDL_HINT_OVERRIDE);
+
     // Prevent audio buffer underruns / stuttering during video playback and heavy CPU load.
-    // Configure SDL3 to use Android's native AAudio backend with Game role and safety buffer.
-    SDL_SetHintWithPriority(SDL_HINT_AUDIO_DRIVER, "AAudio", SDL_HINT_OVERRIDE);
+    // Configure SDL3 to use OpenSL ES as default audio driver with safety buffer.
+    SDL_SetHintWithPriority(SDL_HINT_AUDIO_DRIVER, "openslES", SDL_HINT_OVERRIDE);
     SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_STREAM_ROLE, "Game", SDL_HINT_OVERRIDE);
     SDL_SetHintWithPriority(SDL_HINT_ANDROID_LOW_LATENCY_AUDIO, "0", SDL_HINT_OVERRIDE);
     SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "1024", SDL_HINT_OVERRIDE);
+
+    // Request real-time scheduling priority policy for SDL3 audio & time-critical threads.
+    // Prevents Android OS from demoting audio and render threads to efficiency LITTLE cores.
+    SDL_SetHintWithPriority(SDL_HINT_THREAD_PRIORITY_POLICY, "realtime", SDL_HINT_OVERRIDE);
+    SDL_SetHintWithPriority(SDL_HINT_THREAD_FORCE_REALTIME_TIME_CRITICAL, "1", SDL_HINT_OVERRIDE);
 #endif
     MAIN_LOGI("Initializing SDLWindowedAppContext...");
     rex::ui::SDLWindowedAppContext app_context;

@@ -55,7 +55,11 @@
             android:preferMinimalPostProcessing="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode"
             android:resizeableActivity="true"
-            android:theme="@style/Theme.DantesInferno" />
+            android:theme="@style/Theme.DantesInferno">
+            <meta-data
+                android:name="android.app.performance_mode"
+                android:value="sustained" />
+        </activity>
 
         <!-- Settings Screen -->
         <activity
