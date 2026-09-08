@@ -18,6 +18,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.Surface;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -207,6 +208,18 @@ public class MainActivity extends SDLActivity {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             applyImmersiveStickyMode();
+            selectSixtyHertzDisplayMode();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && mSurface != null) {
+                try {
+                    Surface s = mSurface.getHolder().getSurface();
+                    if (s != null && s.isValid()) {
+                        s.setFrameRate(60.0f, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT);
+                        Log.i(TAG, "onWindowFocusChanged: surface.setFrameRate(60.0f) applied");
+                    }
+                } catch (Throwable t) {
+                    Log.w(TAG, "surface.setFrameRate failed: " + t.getMessage());
+                }
+            }
         }
     }
 
@@ -284,6 +297,9 @@ public class MainActivity extends SDLActivity {
             if (bestMode != null) {
                 WindowManager.LayoutParams params = getWindow().getAttributes();
                 params.preferredDisplayModeId = bestMode.getModeId();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    params.preferredRefreshRate = 60.0f;
+                }
                 getWindow().setAttributes(params);
                 Log.i(TAG, "Display pinned to 60 Hz mode: id=" + bestMode.getModeId() + " (" + bestMode.getRefreshRate() + " Hz)");
             }

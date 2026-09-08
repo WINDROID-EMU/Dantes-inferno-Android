@@ -280,6 +280,15 @@ static int HookedPthreadSetNameNp(pthread_t thread, const char* name) {
       __android_log_print(ANDROID_LOG_INFO, "AudioPriority",
                           "Elevated priority for audio thread '%s' (tid %d) to nice -16 (res=%d)",
                           name, (int)tid, prio_res);
+    } else if (strstr(name, "Presentation") != nullptr ||
+               strstr(name, "GPU Commands") != nullptr ||
+               strstr(name, "Main XThread") != nullptr) {
+      // Tier 2: Core Game Simulation and Presentation (nice -10).
+      // Ensures the Visceral presentation and draw submission thread gets high scheduling priority.
+      setpriority(PRIO_PROCESS, tid, -10);
+      __android_log_print(ANDROID_LOG_INFO, "ThreadPriority",
+                          "Elevated priority for core game thread '%s' (tid %d) to nice -10",
+                          name, (int)tid);
     } else if (strstr(name, "Vulkan Pipeline") != nullptr ||
                strstr(name, "TextureWorker") != nullptr) {
       // Tier 3: Background compiler & texture streaming threads (nice +2).

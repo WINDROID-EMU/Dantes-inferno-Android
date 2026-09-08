@@ -92,13 +92,17 @@ int RunWindowedApp(int argc, char** argv) {
   rex::cvar::SetFlagByName("async_shader_compilation", "true");
   rex::cvar::SetFlagByName("vulkan_async_skip_incomplete_frames", "true");
   rex::cvar::SetFlagByName("render_target_path_vulkan", "fbo");
-  rex::cvar::SetFlagByName("vulkan_pipeline_creation_threads", "6");
-  rex::cvar::SetFlagByName("store_shaders", "true");
+  // Limit pipeline creation threads to 2 so they do not saturate performance cores
+  // and starve the Visceral Presentation / GPU Commands / Audio threads.
+  rex::cvar::SetFlagByName("vulkan_pipeline_creation_threads", "2");
+  // Mesa Turnip already handles persistent on-disk shader caching via MESA_SHADER_CACHE_DIR.
+  // Disabling redundant raw shader dumps eliminates flash storage latency spikes.
+  rex::cvar::SetFlagByName("store_shaders", "false");
 
-  rex::cvar::SetFlagByName("texture_cache_memory_limit_soft", "512");
-  rex::cvar::SetFlagByName("texture_cache_memory_limit_hard", "768");
+  rex::cvar::SetFlagByName("texture_cache_memory_limit_soft", "768");
+  rex::cvar::SetFlagByName("texture_cache_memory_limit_hard", "1024");
   rex::cvar::SetFlagByName("texture_cache_memory_limit_render_to_texture", "96");
-  rex::cvar::SetFlagByName("texture_cache_memory_limit_soft_lifetime", "60");
+  rex::cvar::SetFlagByName("texture_cache_memory_limit_soft_lifetime", "120");
   rex::cvar::SetFlagByName("vsync", "true");
   rex::cvar::SetFlagByName("audio_maxqframes", "64");
 
@@ -167,7 +171,7 @@ int RunWindowedApp(int argc, char** argv) {
     std::filesystem::create_directories(ext / "logs", ec);
     std::string log_path = (ext / "logs" / "dantes_inferno.log").string();
     rex::cvar::SetFlagByName("log_file", log_path);
-    rex::cvar::SetFlagByName("log_level", "info");
+    rex::cvar::SetFlagByName("log_level", "warning");
 
     // Forward ReXGlue engine logs to Android logcat under tag 'ReXEngine'
     std::thread([log_path]() {
@@ -184,7 +188,7 @@ int RunWindowedApp(int argc, char** argv) {
           }
         }
         file.clear();
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       }
     }).detach();
   }
