@@ -78,8 +78,12 @@ public class GameConfigManager {
     }
 
     public static long getCacheSizeBytes(Context context) {
-        File cacheDir = getCacheDir(context);
-        return calculateDirectorySize(cacheDir);
+        long size = calculateDirectorySize(getCacheDir(context));
+        File internalMesaCache = new File(context.getCacheDir(), "mesa_shader_cache");
+        if (internalMesaCache.exists()) {
+            size += calculateDirectorySize(internalMesaCache);
+        }
+        return size;
     }
 
     private static long calculateDirectorySize(File dir) {
@@ -99,9 +103,16 @@ public class GameConfigManager {
     }
 
     public static boolean clearCache(Context context) {
+        boolean ok = true;
         File cacheDir = getCacheDir(context);
-        if (!cacheDir.exists()) return true;
-        return deleteDirectoryContents(cacheDir);
+        if (cacheDir.exists()) {
+            ok &= deleteDirectoryContents(cacheDir);
+        }
+        File internalMesaCache = new File(context.getCacheDir(), "mesa_shader_cache");
+        if (internalMesaCache.exists()) {
+            ok &= deleteDirectoryContents(internalMesaCache);
+        }
+        return ok;
     }
 
     private static boolean deleteDirectoryContents(File dir) {
